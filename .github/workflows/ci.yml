@@ -54,3 +54,17 @@ jobs:
       - name: Build and test tenant-api
         working-directory: targets/tenant-api
         run: mvn -B verify
+
+  isolation-tester-unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install isolation-tester dependencies
+        working-directory: isolation-tester
+        run: pip install -r requirements.txt
+      - name: Run offline oracle/exit-code unit tests (no live stack required)
+        working-directory: isolation-tester
+        run: python -m pytest unit_tests/ -q

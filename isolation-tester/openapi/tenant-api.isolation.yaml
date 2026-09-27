@@ -1,0 +1,145 @@
+openapi: 3.0.3
+info:
+  title: tenant-api isolation-tested surface (SUBSET)
+  version: "1.0"
+  description: >
+    Deliberately insecure for demonstration. Do not deploy.
+    Hand-authored SUBSET of Target A's real API (see targets/tenant-api),
+    covering only the endpoints this harness generically probes for
+    tenant-isolation flaws per SPEC.md section 3. Each operation's
+    x-tenant-isolation extension names which generic probe types apply and
+    which SPEC.md finding id each probe is expected to (re)discover on the
+    baseline profile (finding: null means "positive control" - the probe
+    is expected to always come back DENIED, even on baseline). Endpoints
+    NOT listed here (search/sort injection, webhooks, auth, secrets, rate
+    limiting, audit logging) are outside this harness's declared surface -
+    see excluded_findings in the run config for exactly why, per finding id.
+paths:
+  /invoices/{id}:
+    get:
+      operationId: getInvoiceById
+      x-tenant-isolation:
+        resource: invoice
+        probes:
+          - { type: bola, finding: A-01 }
+          - { type: id-enum, finding: A-01 }
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200": { description: OK }
+
+  /customers/{id}:
+    get:
+      operationId: getCustomerById
+      x-tenant-isolation:
+        resource: customer
+        probes:
+          - { type: bola, finding: null }
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200": { description: OK }
+    put:
+      operationId: updateCustomerById
+      x-tenant-isolation:
+        resource: customer
+        restore: true
+        probes:
+          - { type: bola-write, finding: A-02 }
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200": { description: OK }
+
+  /invoices:
+    get:
+      operationId: listInvoices
+      x-tenant-isolation:
+        resource: invoice
+        probes:
+          - { type: list-foreign-rows, finding: A-04 }
+          - { type: header-spoof, finding: A-04 }
+      responses:
+        "200": { description: OK }
+    post:
+      operationId: createInvoice
+      x-tenant-isolation:
+        resource: invoice
+        probes:
+          - { type: mass-assignment, finding: A-03 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200": { description: OK }
+
+  /invoices/search:
+    get:
+      operationId: searchInvoices
+      x-tenant-isolation:
+        resource: invoice
+        probes:
+          - { type: list-foreign-rows, finding: null }
+          - { type: header-spoof, finding: null }
+      parameters:
+        - { name: sort, in: query, required: false, schema: { type: string } }
+      responses:
+        "200": { description: OK }
+
+  /customers:
+    get:
+      operationId: listCustomers
+      x-tenant-isolation:
+        resource: customer
+        probes:
+          - { type: list-foreign-rows, finding: A-04 }
+          - { type: header-spoof, finding: A-04 }
+      responses:
+        "200": { description: OK }
+
+  /dashboard/summary:
+    get:
+      operationId: dashboardSummary
+      x-tenant-isolation:
+        resource: dashboard
+        probes:
+          - { type: header-spoof, finding: A-04 }
+          - { type: cache-order, finding: A-06 }
+      responses:
+        "200": { description: OK }
+
+  /invoices/exports/{id}:
+    get:
+      operationId: downloadExport
+      x-tenant-isolation:
+        resource: export
+        probes:
+          - { type: bola, finding: A-05 }
+          - { type: id-enum, finding: A-05 }
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200": { description: OK }
+
+  /users/invite:
+    post:
+      operationId: inviteUser
+      x-tenant-isolation:
+        resource: invite
+        min_role: admin
+        probes:
+          - { type: role-restricted, finding: A-07 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200": { description: OK }

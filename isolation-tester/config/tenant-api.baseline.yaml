@@ -1,0 +1,73 @@
+# Deliberately insecure for demonstration. Do not deploy.
+# Tenants x roles x fixture ids for tenant-api's BASELINE profile.
+# Credentials/tenant ids/customer/invoice ids here must exactly match
+# targets/tenant-api/keycloak/ledgerlite-realm.json and
+# targets/tenant-api/src/main/resources/db/migration/V2__seed_data.sql.
+# The same file is reused (with a different --run-name and --expect) once
+# a fixed profile of Target A exists in M3 - only base_url differs.
+
+base_url: "${API_BASE:http://localhost:8183}"
+cache_ttl_seconds: 30
+
+tenants:
+  - id: tenant-acme-001
+    name: "Acme Fictional Co"
+    users:
+      owner: { username: alice.owner, password: LabPassword-Only-1 }
+      admin: { username: bob.admin, password: LabPassword-Only-1 }
+      accountant: { username: carol.accountant, password: LabPassword-Only-1 }
+      viewer: { username: dave.viewer, password: LabPassword-Only-1 }
+    fixtures:
+      invoice_ids: [1, 2]
+      customer_ids: [1, 2]
+
+  - id: tenant-globex-002
+    name: "Globex Fictional Inc"
+    users:
+      owner: { username: erin.owner, password: LabPassword-Only-1 }
+      viewer: { username: frank.viewer, password: LabPassword-Only-1 }
+    fixtures:
+      invoice_ids: [3, 4]
+      customer_ids: [3, 4]
+
+enumeration:
+  # After session-start fixture creation extends each tenant's invoice/export
+  # id ranges, id-enumeration probes walk up to (max id seen this run + N).
+  extra_ids_beyond_max: 5
+
+# Findings from SPEC.md section 2 that this harness deliberately does NOT
+# generate probes for, and why - so a reviewer sees a documented scoping
+# decision, not an accidental gap. All are proven instead by the curl
+# scripts in targets/tenant-api/exploits/.
+excluded_findings:
+  - id: A-08
+    reason: >
+      JWT audience/lifetime/refresh-rotation - a property of the token
+      issuer and resource-server config, not something a per-request
+      tenant-isolation probe (deny/leak against a resource) can express.
+  - id: A-09
+    reason: >
+      Secrets hardcoded in application.yml - a static source finding with
+      no HTTP request that could prove or disprove it.
+  - id: A-10
+    reason: >
+      Absence of rate limiting - not a tenant-isolation probe; proven by
+      firing N requests and checking for a missing 429, unrelated to the
+      deny/leak oracle this tool implements.
+  - id: A-11
+    reason: >
+      Absence of audit logging / tokens in plaintext logs - requires
+      reading the application's own log stream and DB schema, not an API
+      response, so it is out of this HTTP-only harness's reach.
+  - id: A-12
+    reason: >
+      SQL injection via the `sort` parameter (Injection category in
+      SPEC.md section 2, not Tenant isolation) - the WHERE tenant_id=?
+      filter stays parameterised, so there is no cross-tenant data
+      returned for this harness's deny/leak oracle to catch. This harness
+      deliberately never sends injection payloads. Manually/scanner-found
+      instead (see targets/tenant-api/exploits/A-12-*.sh and scanners/).
+  - id: A-13
+    reason: >
+      SSRF via the webhook test endpoint - not a tenant-isolation probe
+      (no cross-tenant actor/resource pair applies).

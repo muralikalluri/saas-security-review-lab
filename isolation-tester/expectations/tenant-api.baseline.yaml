@@ -1,0 +1,14 @@
+# Deliberately insecure for demonstration. Do not deploy.
+# Expected leaked-finding set for tenant-api's BASELINE profile.
+# The tool exits 0 only if the ACTUAL leaked-finding set from a run equals
+# this set exactly - so if baseline ever stops finding one of these (e.g.
+# someone "helpfully" fixes A-01 while touching unrelated code), the run
+# fails just as loudly as a brand-new leak would.
+expected_leaks:
+  - A-01
+  - A-02
+  - A-03
+  - A-04
+  - A-05
+  - A-06
+  - A-07

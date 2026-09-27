@@ -1,0 +1,4 @@
+# Deliberately insecure for demonstration. Do not deploy.
+# Expected leaked-finding set for tenant-api's FIXED profile (M3).
+# Fully green: no leaks expected at all.
+expected_leaks: []
