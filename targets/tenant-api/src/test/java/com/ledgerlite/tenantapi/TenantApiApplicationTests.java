@@ -6,13 +6,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-class TenantApiApplicationTests {
+class TenantApiApplicationTests extends AbstractIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -30,6 +26,6 @@ class TenantApiApplicationTests {
     void statusEndpointReportsMilestone() throws Exception {
         mockMvc.perform(get("/api/status"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.milestone").value("M0-scaffold"));
+                .andExpect(jsonPath("$.milestone").value("M1-baseline"));
     }
 }

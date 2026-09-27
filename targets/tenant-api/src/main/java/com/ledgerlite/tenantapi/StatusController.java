@@ -11,7 +11,7 @@ public class StatusController {
     public Map<String, String> status() {
         return Map.of(
                 "service", "tenant-api",
-                "milestone", "M0-scaffold",
-                "note", "Seeded vulnerabilities (A-01..A-13) land in M1.");
+                "milestone", "M1-baseline",
+                "note", "Deliberately insecure baseline - all seeded flaws A-01..A-13 present. See exploits/.");
     }
 }

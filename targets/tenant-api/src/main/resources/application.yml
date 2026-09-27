@@ -2,6 +2,45 @@ spring:
   application:
     name: tenant-api
 
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:8182/ledgerlite}
+    username: ${DB_USER:ledgerlite_dev}
+    # A-09 (seeded flaw, SPEC.md A-09): DB password hardcoded in application.yml
+    # and committed to the repo. Obviously fake, local-dev-only value; never a
+    # real secret. In targets/tenant-api-fixed the equivalent value is read
+    # only from an env var with no hardcoded fallback.
+    password: ${DB_PASSWORD:localdev_only_do_not_use}
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # A-08 (seeded flaw, SPEC.md A-08): signature is verified via the
+          # JWK set only. No issuer-uri and no audience validator is
+          # configured anywhere in this app, so a token minted for any other
+          # client/audience on the same Keycloak realm is accepted.
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8181/realms/ledgerlite/protocol/openid-connect/certs}
+
+app:
+  keycloak:
+    internal-token-uri: ${KEYCLOAK_INTERNAL_TOKEN_URI:http://localhost:8181/realms/ledgerlite/protocol/openid-connect/token}
+    client-id: tenant-api
+  # A-09 (seeded flaw, SPEC.md A-09): a legacy JWT signing secret, hardcoded
+  # and committed. Obviously fake and deliberately shaped so it cannot match
+  # any real provider's key format (see CLAUDE.md). Unused by the resource
+  # server (Keycloak issues real tokens) - kept here purely as the seeded
+  # "leaked secret in application.yml" finding for scanners/gitleaks (M5).
+  legacy-jwt-signing-secret: FAKE_JWT_HMAC_SECRET_DO_NOT_USE_ba91f3
+
 server:
   port: 8080
 
@@ -10,3 +49,7 @@ management:
     web:
       exposure:
         include: health
+
+logging:
+  level:
+    com.ledgerlite.tenantapi: INFO
