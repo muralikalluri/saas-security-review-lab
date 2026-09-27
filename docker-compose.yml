@@ -1,0 +1,57 @@
+# Deliberately insecure for demonstration. Do not deploy.
+# Local-only stack for Target A (tenant-api / "LedgerLite"). All ports are bound to
+# 127.0.0.1 only; nothing here is reachable outside the host running docker.
+# Host-side ports use the 81xx range (see .env.example) to avoid clashing with
+# other repos on this machine; container-internal ports stay standard.
+
+name: saas-security-review-lab
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ledgerlite}
+      POSTGRES_USER: ${POSTGRES_USER:-ledgerlite_dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-localdev_only_do_not_use}
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-8182}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ledgerlite_dev} -d ${POSTGRES_DB:-ledgerlite}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - tenant-api-net
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0
+    command: start-dev
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-localdev_only_do_not_use}
+    ports:
+      - "127.0.0.1:${KEYCLOAK_HOST_PORT:-8181}:8080"
+    networks:
+      - tenant-api-net
+
+  api:
+    build:
+      context: ./targets/tenant-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    ports:
+      - "127.0.0.1:${API_HOST_PORT:-8183}:8080"
+    networks:
+      - tenant-api-net
+
+networks:
+  tenant-api-net:
+    driver: bridge
+
+volumes:
+  postgres-data:

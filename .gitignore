@@ -1,0 +1,20 @@
+# Root-only: anchored so nested .env files (e.g. targets/vibe-app/.env, a
+# seeded flaw in M4 per SPEC.md B-02) are not silently ignored here.
+/.env
+/.env.*
+!/.env.example
+node_modules/
+.next/
+target/
+build/
+dist/
+__pycache__/
+.venv/
+*.pyc
+.idea/
+.vscode/
+.DS_Store
+terraform.tfstate*
+.terraform/
+results/**/raw/
+PROMPTS.md

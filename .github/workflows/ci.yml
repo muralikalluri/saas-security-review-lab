@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  banners:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check deliberately-insecure banners are present
+        run: |
+          set -euo pipefail
+          BANNER="Deliberately insecure for demonstration"
+          for f in README.md targets/tenant-api/README.md targets/vibe-app/README.md docker-compose.yml; do
+            grep -q "$BANNER" "$f" || { echo "Missing banner in $f"; exit 1; }
+          done
+
+  compose-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate docker-compose config
+        run: docker compose config -q
+      - name: Build tenant-api image
+        run: docker compose build api
+      - name: Smoke-test postgres service
+        run: |
+          set -euo pipefail
+          cp .env.example .env
+          docker compose up -d postgres
+          for i in $(seq 1 30); do
+            health=$(docker compose ps postgres --format '{{.Health}}')
+            if [ "$health" = "healthy" ]; then
+              echo "postgres is healthy"
+              break
+            fi
+            sleep 2
+          done
+          docker compose ps postgres --format '{{.Health}}' | grep -q healthy
+          docker compose down -v
+
+  tenant-api-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Build and test tenant-api
+        working-directory: targets/tenant-api
+        run: mvn -B verify
