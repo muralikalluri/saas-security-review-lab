@@ -412,7 +412,9 @@ def main() -> int:
     ))
     parser.add_argument("--schemas", nargs="+", default=["public"])
     parser.add_argument("--allowlist", type=Path, default=Path(__file__).parent / "rls-allowlist.yml")
-    parser.add_argument("--target-dir", type=Path, default=REPO_ROOT / "targets" / "vibe-app")
+    parser.add_argument(
+        "--target-dir", type=lambda p: Path(p).resolve(), default=REPO_ROOT / "targets" / "vibe-app"
+    )
     parser.add_argument("--run-name", default="vibe-app")
     parser.add_argument("--expect", type=Path, default=None)
     parser.add_argument(

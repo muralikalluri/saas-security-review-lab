@@ -1,12 +1,10 @@
 "use client";
 
 /**
- * B-11 (seeded flaw, SPEC.md B-11): this client component only ever
- * RENDERS `member.full_name` - but the parent server component
- * (app/studio/members/page.tsx) passes the entire profile row as props,
- * including email and phone. Next.js serialises the full prop object into
- * the page's payload, so that PII ships to every visitor's browser
- * regardless of what this component chooses to display.
+ * B-11 (fixed, SPEC.md B-11): the parent server component
+ * (app/studio/members/page.tsx) now selects only {id, full_name} - there is
+ * no PII in `members` for this component to receive in the first place,
+ * regardless of what it renders.
  */
 export default function MemberNameList({ members }: { members: any[] }) {
   return (

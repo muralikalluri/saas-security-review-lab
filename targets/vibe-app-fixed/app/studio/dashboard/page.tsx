@@ -1,4 +1,5 @@
 import { createClient, getSessionUser } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * B-12 (seeded flaw, SPEC.md B-12): "Structure / maintainability" - this is
@@ -39,17 +40,21 @@ export default async function StudioDashboardPage() {
   const { data: classes } = await supabaseClasses.from("classes").select("*").order("starts_at", { ascending: true });
 
   // --- inline query #2: every booking, confirmed or cancelled -------------
-  const supabaseBookings = createClient();
+  // (fixed, B-03/B-04): reads via the service-role client - after enabling
+  // RLS on bookings/profiles, a regular session client would only see the
+  // admin's OWN rows. This page already re-verified the caller is an admin
+  // above, so the elevated read here is intentional and gated.
+  const supabaseBookings = createAdminClient();
   const { data: bookings } = await supabaseBookings.from("bookings").select("*");
 
   // --- inline query #3: every member profile -------------------------------
-  const supabaseMembers = createClient();
+  const supabaseMembers = createAdminClient();
   const { data: members } = await supabaseMembers.from("profiles").select("*");
 
   // --- inline query #4: cancelled bookings, re-fetched separately instead
   // of filtered from query #2 above - a shared data layer would not do
   // the same round trip twice with slightly different filters.
-  const supabaseCancellations = createClient();
+  const supabaseCancellations = createAdminClient();
   const { data: cancellations } = await supabaseCancellations.from("bookings").select("*").eq("status", "cancelled");
 
   const allClasses = classes ?? [];
