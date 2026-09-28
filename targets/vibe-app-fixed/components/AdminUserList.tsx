@@ -1,32 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 /**
- * B-01 (seeded flaw, SPEC.md B-01): a "quick and easy" way to list every
- * user for the admin dashboard - built by constructing a Supabase client
- * with the SERVICE ROLE key directly in this "use client" component, read
- * from a `NEXT_PUBLIC_`-prefixed env var. Next.js inlines every
- * `NEXT_PUBLIC_*` variable into the browser bundle at build time, so the
- * service-role key - which bypasses every RLS policy in the database -
- * ships to every visitor's browser, not just admins. Contrast with
- * lib/supabase/admin.ts, which does this correctly (server-only, real
- * env var) but is simply not used here.
+ * B-01 (fixed, SPEC.md B-01): fetches from the server-side /api/admin/users
+ * route instead of building a Supabase client with the service-role key
+ * directly in this "use client" component. No service-role key, prefixed
+ * or otherwise, exists anywhere in client-reachable code.
  */
-const supabaseAdminInBrowser = createSupabaseClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY!
-);
-
 export default function AdminUserList() {
   const [users, setUsers] = useState<any[]>([]);
 
   useEffect(() => {
-    supabaseAdminInBrowser
-      .from("profiles")
-      .select("*")
-      .then(({ data }) => setUsers(data ?? []));
+    fetch("/api/admin/users")
+      .then((r) => r.json())
+      .then(({ users }) => setUsers(users ?? []));
   }, []);
 
   return (
