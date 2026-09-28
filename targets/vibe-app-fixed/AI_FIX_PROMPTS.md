@@ -3,14 +3,14 @@
 > Deliberately insecure for demonstration. Do not deploy. Run locally only.
 
 One prompt per seeded finding (`SPEC.md` §4 format), written **before** any fix
-was applied, then used (via Claude Code, against this `targets/vibe-app-fixed/`
-copy) to make each fix - one commit per finding ID, in the order below (chosen
-so every intermediate commit still builds and runs; see the note on B-04
-breaking two read paths without B-11 landing alongside it). A handful of
-prompts turned out to describe the implementation slightly differently from
-what actually landed - see "Deviations during implementation" at the end of
-this file rather than assuming every line below is exactly what got built;
-that section is the honest record, not this one.
+was applied, then used verbatim (via Claude Code, against this
+`targets/vibe-app-fixed/` copy) to make each fix - one commit per finding ID,
+in the order below (chosen so every intermediate commit still builds and runs;
+see the note on B-04 breaking two read paths without B-11 landing alongside
+it). Every prompt below is exactly what was typed and run, unedited after the
+fact, even where the prompt itself turned out to be wrong (see B-03 in
+"Deviations during implementation" at the end of this file) or the commit that
+followed it ended up differing from what it says.
 
 Each prompt assumes the *previous* prompts in the list have already landed.
 
@@ -49,15 +49,10 @@ Add a new migration `targets/vibe-app-fixed/supabase/migrations/*_fix_rls.sql`
 (don't edit the baseline migrations) that enables RLS on `public.bookings` and
 adds a SELECT policy scoped to `user_id = auth.uid() OR public.is_admin()`
 (create `public.is_admin()` as a `SECURITY DEFINER`, `STABLE`, `SET
-search_path = ''` function reading `profiles.role` for `auth.uid()` - a plain
-subquery on `profiles` inside a `profiles` policy would recurse, which is what
-this indirection avoids. Its EXECUTE privilege must stay granted to
-`anon`/`authenticated` - Postgres evaluates an RLS policy expression AS the
-connecting role, so revoking EXECUTE here would make the policy itself fail
-for every real caller, not just lock the function down; that's the opposite
-of what B-06/B-10's RPCs need, where EXECUTE genuinely should be
-service_role-only because those trust their caller completely instead of
-checking `auth.uid()` themselves). Revoke `INSERT`, `UPDATE`, `DELETE` on `bookings` from
+search_path = ''` function reading `profiles.role` for `auth.uid()`, revoked
+from `anon`/`authenticated`/`public` and granted only to itself being callable
+via RLS - a plain subquery on `profiles` inside a `profiles` policy would
+recurse). Revoke `INSERT`, `UPDATE`, `DELETE` on `bookings` from
 `authenticated` - all writes happen server-side via the service-role client
 or an RPC (see B-10), so a direct PostgREST write must be denied outright,
 not just RLS-narrowed. Acceptance check: `scanners/rls-checker/rls_checker.py`
@@ -203,6 +198,19 @@ above. Recorded here rather than silently rewriting the prompts to match the
 result after the fact - the prompts above are what was actually typed and run,
 this section is what happened instead:
 
+- **B-03's prompt was itself wrong**, and the commit did not follow it: it
+  says to create `is_admin()` "revoked from `anon`/`authenticated`/`public`
+  and granted only to itself being callable via RLS". That's a technical
+  error - Postgres evaluates an RLS policy expression AS the connecting role,
+  so revoking EXECUTE on a function a policy calls makes the policy fail for
+  every real caller, not just lock the function down (the opposite of what
+  B-06/B-10's RPCs need, where EXECUTE genuinely should be service_role-only
+  because those trust their caller completely instead of checking
+  `auth.uid()` themselves). The commit that actually landed kept EXECUTE
+  granted to `anon`/`authenticated`, correctly. A later attempt to "fix" this
+  by silently rewriting the prompt text itself (rather than recording it here)
+  was caught in review and reverted - the prompt above is the original,
+  unedited, technically-wrong version that was really run.
 - **B-04's prompt** says the compensating fix to `app/studio/members/page.tsx`
   should "read server-side with the admin client after an admin check". The
   page that actually landed is **auth-only** (any signed-in member can view
@@ -237,3 +245,14 @@ this section is what happened instead:
   constraint. Fixed in a follow-up migration
   (`20240101000008_fix_b08_conflict_target.sql`) changing it to a bare
   `on conflict do nothing`, which catches a violation of either constraint.
+  `exploits/B-08-webhook-duplicate-event-double-grant.sh` originally only
+  replayed the identical event id, so it would not have caught this by
+  itself - a second check (two differently-id'd events for the same checkout
+  session) was added to the script as a regression test.
+- **B-12's prompt** asks for `vitest` tests covering `book_class`'s
+  route-level validation specifically. What exists is `lib/validation.test.ts`
+  (unit tests for the shared validation function) plus live coverage of
+  `book_class` itself via `exploits/B-10-negative-quantity-booking.sh`
+  (quantities `-5`, `0`, `21`, non-integer, and a negative cost passed
+  directly to the RPC) - real coverage of the same cases, but as an
+  integration exploit script against a live database, not a `vitest` test.
