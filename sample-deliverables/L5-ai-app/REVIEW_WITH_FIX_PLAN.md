@@ -111,7 +111,7 @@ scanners/gitleaks/gitleaks.toml` reports no hit under `targets/vibe-app-fixed/`.
 **Why it matters.** Any authenticated user can read, update, or delete EVERY other user's bookings directly through Supabase's own REST API, completely bypassing the Next.js app's own routes and any checks they perform.
 
 **Exact fix.** Enable RLS with an owner/admin SELECT policy; explicitly revoke INSERT/UPDATE/DELETE from `authenticated` - every write must go through a service-role route or RPC, since a policy alone doesn't override Supabase's default table-level grants.
-  Diff: `git show 40c4128`.
+  Diff: `git show 40c4128`, `git show 8cc3b52` (a follow-up commit after the first fix was found incomplete).
 
 **AI fix prompt** (copy-paste into Claude Code / Cursor):
 
@@ -278,7 +278,7 @@ database. Fail closed (500) at import/request time if
 **Why it matters.** A replayed (or maliciously resubmitted) webhook event grants the same credits repeatedly - direct financial loss for the business, scaling with however many times the event is replayed.
 
 **Exact fix.** Record processed event ids in a table with a unique constraint, and grant credits in the SAME atomic statement (a SECURITY DEFINER RPC) so there is no window where one succeeded without the other.
-  Diff: `git show 292563a`, `git show 9c39b99` (a follow-up commit after the first fix was found incomplete).
+  Diff: `git show 292563a`, `git show 9c39b99`, `git show 8cc3b52` (a follow-up commit after the first fix was found incomplete).
 
 **AI fix prompt** (copy-paste into Claude Code / Cursor):
 
@@ -323,7 +323,7 @@ twice, shows the balance moving by the credit amount exactly once.
 **Why it matters.** Stored XSS - a malicious SVG avatar executes its script in the browser of anyone who views it, including via the public bucket URL directly.
 
 **Exact fix.** Restrict the bucket's allowed_mime_types to a real-image allow-list (no SVG) with a file size cap, and derive the stored filename's extension from the validated type, never the raw uploaded filename.
-  Diff: `git show 87dd892`.
+  Diff: `git show 87dd892`, `git show 8cc3b52` (a follow-up commit after the first fix was found incomplete).
 
 **AI fix prompt** (copy-paste into Claude Code / Cursor):
 

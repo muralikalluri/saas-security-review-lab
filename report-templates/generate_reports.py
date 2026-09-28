@@ -354,7 +354,10 @@ committed, to keep this repo small.
 combination ({baseline_iso['control_probes']} additional positive-control probes confirmed
 legitimate owner access still works), preflight {'OK' if baseline_iso['preflight_ok'] else 'FAILED'},
 positive controls {'OK' if baseline_iso['controls_ok'] else 'FAILED'}. **{baseline_iso['leak_count']} probes
-classified LEAK**, confirming findings {', '.join(baseline_iso['confirmed_findings'])} mechanically.
+classified LEAK**, confirming findings {', '.join(baseline_iso['confirmed_findings'])} mechanically. This run's
+own exit code is {baseline_iso['exit_code']} - against this baseline profile the harness exits 0 when it finds
+*exactly* the expected/already-known leaks (its job here is regression detection against a target that's
+supposed to stay vulnerable), not when it finds none; see the fixed-mode run below for the "0 leaks" result.
 
 **Harness run summary, fixed** (from `results/isolation-tester/fixed/isolation-matrix.json`):
 {fixed_iso['non_control_probes']} non-control probes ({fixed_iso['control_probes']} positive controls),

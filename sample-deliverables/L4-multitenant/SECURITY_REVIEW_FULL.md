@@ -22,7 +22,10 @@ committed, to keep this repo small.
 combination (24 additional positive-control probes confirmed
 legitimate owner access still works), preflight OK,
 positive controls OK. **86 probes
-classified LEAK**, confirming findings A-01, A-02, A-03, A-04, A-05, A-06, A-07 mechanically.
+classified LEAK**, confirming findings A-01, A-02, A-03, A-04, A-05, A-06, A-07 mechanically. This run's
+own exit code is 0 - against this baseline profile the harness exits 0 when it finds
+*exactly* the expected/already-known leaks (its job here is regression detection against a target that's
+supposed to stay vulnerable), not when it finds none; see the fixed-mode run below for the "0 leaks" result.
 
 **Harness run summary, fixed** (from `results/isolation-tester/fixed/isolation-matrix.json`):
 124 non-control probes (24 positive controls),
