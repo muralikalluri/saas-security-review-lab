@@ -1,0 +1,174 @@
+# Deliberately insecure for demonstration. Do not deploy.
+# Per-finding detail for Target A (tenant-api / LedgerLite), L4 sample
+# deliverables. Severity is the one field here that's genuine analyst
+# judgement (like a real pentester's triage) - everything else that's a
+# COUNT or SUMMARY STAT in the generated reports is computed FROM this file
+# plus the actual results files (attribution.json, isolation-matrix.json),
+# never hand-typed into the report body itself (CLAUDE.md).
+findings:
+  - id: A-01
+    severity: Critical
+    owasp_api_2023: "API1:2023 - Broken Object Level Authorization"
+    owasp_2021: "A01:2021 - Broken Access Control"
+    what: >-
+      GET /invoices/{id} loads the invoice by primary key alone - it never
+      checks that the invoice belongs to the caller's own tenant.
+    impact: >-
+      Any authenticated user from ANY tenant can read any other tenant's
+      invoice by guessing or enumerating sequential ids - full cross-tenant
+      financial data disclosure (line items, totals, customer names).
+    fix: >-
+      Load by (id, tenant_id) together - either a repository method
+      `findByIdAndTenantId`, or a Postgres RLS policy comparing tenant_id
+      to a session-local `app.tenant_id` (see targets/tenant-api-fixed).
+    effort: S
+  - id: A-02
+    severity: Critical
+    owasp_api_2023: "API1:2023 - Broken Object Level Authorization"
+    owasp_2021: "A01:2021 - Broken Access Control"
+    what: >-
+      PUT /customers/{id} updates the customer row by id alone, with no
+      tenant check on the write path.
+    impact: >-
+      Any authenticated user from any tenant can OVERWRITE another
+      tenant's customer record - not just read, but corrupt another
+      company's data.
+    fix: "Same fix pattern as A-01, applied to the write path: findByIdAndTenantId before the update."
+    effort: S
+  - id: A-03
+    severity: High
+    owasp_api_2023: "API3:2023 - Broken Object Property Level Authorization"
+    owasp_2021: "A01:2021 - Broken Access Control"
+    what: >-
+      The invoice JSON exposes internal fields (tenantId, cost fields) the
+      client should never see or set, and POST /invoices lets the client
+      set tenantId directly on create (mass assignment).
+    impact: >-
+      A malicious or compromised client can create an invoice tagged as
+      belonging to a DIFFERENT tenant, planting data in another company's
+      account; the exposed internal fields leak cost/margin data never
+      meant for the API consumer.
+    fix: >-
+      Introduce request/response DTOs that never carry tenantId; derive
+      tenantId server-side from the caller's own token, never from the
+      request body.
+    effort: M
+  - id: A-04
+    severity: Critical
+    owasp_api_2023: "API1:2023 - Broken Object Level Authorization"
+    owasp_2021: "A01:2021 - Broken Access Control"
+    what: >-
+      The tenant context is resolved from an `X-Tenant-Id` HTTP header
+      instead of the verified JWT's own tenant claim.
+    impact: >-
+      Any caller can set this header to an arbitrary value and impersonate
+      any tenant for every request - this is the root-cause enabler behind
+      most of the OTHER cross-tenant findings, since it means "which
+      tenant is this request for" is entirely client-controlled.
+    fix: "Resolve tenant_id from the JWT's own verified claim only; ignore any client-supplied header for this purpose entirely."
+    effort: S
+  - id: A-05
+    severity: High
+    owasp_api_2023: "API1:2023 - Broken Object Level Authorization"
+    owasp_2021: "A01:2021 - Broken Access Control"
+    what: >-
+      Report exports are written to a shared temp path keyed by a
+      sequential integer id, with no ownership check on download.
+    impact: >-
+      An attacker can walk sequential export ids and download OTHER
+      tenants' exported invoice reports - a bulk, offline variant of the
+      same cross-tenant data leak as A-01.
+    fix: "Check export ownership (tenant_id) before serving; use non-sequential (UUID) export ids as defence in depth."
+    effort: M
+  - id: A-06
+    severity: High
+    owasp_api_2023: "API1:2023 - Broken Object Level Authorization"
+    owasp_2021: "A01:2021 - Broken Access Control"
+    what: "The dashboard summary cache key does not include the tenant, so cached totals from one tenant are served to the next."
+    impact: >-
+      A tenant can see another tenant's dashboard revenue/invoice totals -
+      cross-tenant data leak via a shared cache, intermittent and
+      timing-dependent (harder to notice than a direct API leak, easy to
+      miss in a manual review).
+    fix: "Key the cache entry on tenant_id (e.g. \"summary:{tenantId}\"), never a constant string."
+    effort: S
+  - id: A-07
+    severity: Medium
+    owasp_api_2023: "API5:2023 - Broken Function Level Authorization"
+    owasp_2021: "A01:2021 - Broken Access Control"
+    what: "POST /users/invite is only hidden from the `viewer` role in the UI - the endpoint itself has no server-side role check."
+    impact: >-
+      A `viewer`-role user (meant to be read-only) can call the endpoint
+      directly and invite new users into the tenant, including - depending
+      on what role the request specifies - potentially privileged roles.
+    fix: "Add @PreAuthorize (or equivalent) role enforcement server-side; never rely on UI-only hiding for an authorization decision."
+    effort: S
+  - id: A-08
+    severity: Medium
+    owasp_api_2023: "API2:2023 - Broken Authentication"
+    owasp_2021: "A07:2021 - Identification and Authentication Failures"
+    what: "JWT audience is never validated, tokens are long-lived, and there is no refresh-token rotation."
+    impact: >-
+      A token issued for a different, unrelated audience/service can be
+      replayed against this API; long-lived tokens with no rotation widen
+      the window a stolen token stays useful.
+    fix: "Validate the `aud` claim against this API's own identifier; issue short-lived access tokens with refresh rotation and reuse detection."
+    effort: M
+  - id: A-09
+    severity: High
+    owasp_api_2023: "API8:2023 - Security Misconfiguration"
+    owasp_2021: "A05:2021 - Security Misconfiguration"
+    what: "The JWT signing secret and the database password are hardcoded in the committed application.yml."
+    impact: >-
+      Anyone with read access to the source repository (including a former
+      employee, a leaked backup, or a public-repo mistake) obtains
+      credentials that can forge auth tokens or connect to the database
+      directly.
+    fix: "Read both from environment variables with no hardcoded fallback; the app should fail to start if they're unset, not silently use a default."
+    effort: S
+  - id: A-10
+    severity: Medium
+    owasp_api_2023: "API4:2023 - Unrestricted Resource Consumption"
+    owasp_2021: "A04:2021 - Insecure Design"
+    what: "Login and invoice export have no rate limiting."
+    impact: >-
+      Login is brute-forceable at unlimited speed; export has no
+      protection against being used as a resource-exhaustion or
+      cross-tenant-enumeration accelerant (see A-05).
+    fix: "Add per-identity rate limiting (e.g. Bucket4j) on both endpoints, with a sensible lockout/backoff policy."
+    effort: M
+  - id: A-11
+    severity: Medium
+    owasp_api_2023: "API9:2023 - Improper Inventory Management"
+    owasp_2021: "A09:2021 - Security Logging and Monitoring Failures"
+    what: "Role changes and exports are not audited at all, and application logs contain full bearer tokens."
+    impact: >-
+      No forensic trail exists for privilege changes or data exports after
+      an incident; logged tokens are themselves a secondary credential
+      leak (anyone with log access can replay them).
+    fix: "Add an audit_log table written in the same transaction as the sensitive action; scrub Authorization header values from all log output."
+    effort: M
+  - id: A-12
+    severity: High
+    owasp_api_2023: "API8:2023 - Security Misconfiguration"
+    owasp_2021: "A03:2021 - Injection"
+    what: "The invoice search endpoint's `sort` query parameter is concatenated directly into the SQL ORDER BY clause."
+    impact: >-
+      Classic SQL injection via the sort parameter. The blast radius stays
+      tenant-scoped in the current schema (the WHERE tenant_id clause is
+      parameterised separately), but this is a structural injection flaw
+      that would extend to full data access with any future query change
+      that reuses the same unsafe pattern.
+    fix: "Whitelist `sort` against a fixed set of known column names server-side before it ever reaches the query; never string-concatenate user input into SQL."
+    effort: S
+  - id: A-13
+    severity: High
+    owasp_api_2023: "API7:2023 - Server Side Request Forgery"
+    owasp_2021: "A10:2021 - Server-Side Request Forgery"
+    what: "The webhook 'test' endpoint fetches whatever URL the caller provides, including internal/metadata IP ranges."
+    impact: >-
+      Classic SSRF - an attacker can use this endpoint to probe internal
+      network services or reach the cloud metadata endpoint
+      (169.254.169.254) and potentially exfiltrate instance credentials.
+    fix: "Require https, enforce a per-deployment host allow-list, reject IP literals and private/link-local ranges, disable redirects, and validate BEFORE the outbound call is made."
+    effort: M
