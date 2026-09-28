@@ -84,6 +84,22 @@ jobs:
         working-directory: targets/vibe-app
         run: npm run build
 
+  vibe-app-fixed-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: targets/vibe-app-fixed/package-lock.json
+      - name: Install dependencies
+        working-directory: targets/vibe-app-fixed
+        run: npm ci
+      - name: Build (typecheck + compile) - no live Supabase needed
+        working-directory: targets/vibe-app-fixed
+        run: npm run build
+
   scanners:
     runs-on: ubuntu-latest
     steps:
