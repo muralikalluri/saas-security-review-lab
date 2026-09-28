@@ -1,8 +1,8 @@
-# B-02 (seeded flaw, SPEC.md B-02): deliberately does NOT list .env - a real
-# project would exclude it here. See .env's own header comment for why every
-# value in it is safe to commit (local Supabase CLI demo keys, obviously-fake
-# Stripe placeholders per CLAUDE.md).
+# B-02 (fixed, SPEC.md B-02): unlike the baseline, .env IS excluded here - a
+# real project's own local secrets never get committed. Only .env.example
+# (placeholders) is tracked. Copy it to .env and fill in real values.
 node_modules/
 .next/
+.env
 .env.local
 *.tsbuildinfo
