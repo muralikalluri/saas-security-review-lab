@@ -27,10 +27,23 @@ files - never asserted in the report body by hand:
 - `scanners/results/attribution.json` (M5) - which findings were tool-found,
   harness-found, or manual, read directly for each finding's "How found"
   line.
-- `results/isolation-tester/baseline/isolation-matrix.json` (M2) - Target
-  A's harness proof; the generator counts LEAK/DENIED/control probes from
-  this file itself, and `isolation-matrix.md` is copied into the L4
-  deliverable verbatim (never re-summarised by hand).
+- `results/isolation-tester/{baseline,fixed}/isolation-matrix.json` (M2) -
+  Target A's harness proof, both before and after the fix; the generator
+  counts LEAK/DENIED/control probes from these files itself, and
+  `isolation-matrix.md` (baseline) is copied into the L4 deliverable
+  verbatim (never re-summarised by hand).
+- `scanners/results/rls-checker/vibe-app-fixed/rls-matrix.json` (M5/M6) -
+  the fixed-mode RLS retest line's FAIL count.
+- `scanners/results/gitleaks/vibe-app-fixed-tree.json` and
+  `scanners/results/semgrep/vibe-app-fixed.json` (M6) - the fixed-mode
+  gitleaks/semgrep retest counts, cross-referenced against `git ls-files`
+  to separate tracked hits from the local, gitignored `.env`.
+- `targets/vibe-app-fixed/AI_FIX_PROMPTS.md` - the L5 report's AI fix
+  prompts and "Deviation from the prompt" notes are parsed directly from
+  this file at generation time, not a second hand-copied version that
+  could drift from it (see the file's own header for why).
+- `git log` - each finding's "Diff:" citation is a real commit hash found
+  by searching commit subjects for the finding id, not a placeholder.
 
 ## Generate (or regenerate) the reports
 
