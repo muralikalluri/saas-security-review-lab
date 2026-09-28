@@ -1,59 +1,55 @@
 import { NextResponse } from "next/server";
-import { createClient, getSessionUser } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+const MAX_QUANTITY = 20;
+
+/**
+ * B-10 (fixed, SPEC.md B-10): quantity must be a positive integer within a
+ * sane upper bound - rejects NaN, Infinity, floats, numeric strings, zero,
+ * and negatives before it ever reaches the database. The actual booking +
+ * credit debit now happens inside book_class() (see the migration), one
+ * atomic statement that also re-checks capacity and balance server-side -
+ * the baseline's separate select-then-update-then-insert sequence is gone,
+ * along with the negative-quantity/negative-cost bug that came from it.
+ */
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) {
     return NextResponse.json({ error: "not authenticated" }, { status: 401 });
   }
 
-  const body = await request.json();
-  const { classId, quantity } = body as { classId: string; quantity: number };
+  const body = await request.json().catch(() => null);
+  const classId = body?.classId;
+  const quantity = body?.quantity;
 
-  const supabase = createClient();
-  const { data: classRow } = await supabase.from("classes").select("credit_cost").eq("id", classId).single();
+  if (typeof classId !== "string") {
+    return NextResponse.json({ error: "invalid classId" }, { status: 400 });
+  }
+  if (!Number.isInteger(quantity) || quantity <= 0 || quantity > MAX_QUANTITY) {
+    return NextResponse.json({ error: `quantity must be a positive integer up to ${MAX_QUANTITY}` }, { status: 400 });
+  }
+
+  const supabaseAdmin = createAdminClient();
+  const { data: classRow } = await supabaseAdmin.from("classes").select("credit_cost").eq("id", classId).single();
   if (!classRow) {
     return NextResponse.json({ error: "class not found" }, { status: 404 });
   }
 
-  // B-10 (seeded flaw, SPEC.md B-10): `quantity` is used exactly as
-  // received - no check that it is a positive integer, or that it fits
-  // the class's remaining capacity.
-  //
-  // B-12 (seeded flaw, SPEC.md B-12): this duplicates
-  // lib/pricing.ts's estimateCreditCost formula instead of importing it,
-  // and - unlike the client's display copy - has no Math.max(1, ...)
-  // clamp, so a negative quantity produces a NEGATIVE credit cost.
-  // Combined with B-10, a booking with quantity=-5 subtracts a negative
-  // number from credit_balance, i.e. INCREASES it.
   const creditCost = classRow.credit_cost * quantity;
 
-  // credit_balance is written with the service-role client: a normal
-  // user's own session grant only covers profile-editing columns (see
-  // supabase/migrations/20240101000002_rls_and_storage.sql), so this
-  // route - not the client - is the trusted place that debits credits.
-  const supabaseAdmin = createAdminClient();
+  const { data: booking, error } = await supabaseAdmin.rpc("book_class", {
+    p_user_id: user.id,
+    p_class_id: classId,
+    p_quantity: quantity,
+    p_cost: creditCost,
+  });
+
+  if (error || !booking) {
+    return NextResponse.json({ error: error?.message ?? "booking failed" }, { status: 409 });
+  }
+
   const { data: profile } = await supabaseAdmin.from("profiles").select("credit_balance").eq("id", user.id).single();
-  if (!profile) {
-    return NextResponse.json({ error: "profile not found" }, { status: 404 });
-  }
 
-  const newBalance = profile.credit_balance - creditCost;
-
-  const { error: updateError } = await supabaseAdmin.from("profiles").update({ credit_balance: newBalance }).eq("id", user.id);
-  if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
-  }
-
-  const { data: booking, error: bookingError } = await supabase
-    .from("bookings")
-    .insert({ user_id: user.id, class_id: classId, quantity })
-    .select()
-    .single();
-  if (bookingError) {
-    return NextResponse.json({ error: bookingError.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ booking, creditBalance: newBalance });
+  return NextResponse.json({ booking, creditBalance: profile?.credit_balance ?? null });
 }

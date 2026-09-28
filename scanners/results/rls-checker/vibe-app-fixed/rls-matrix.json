@@ -36,5 +36,17 @@
     "evidence_policies": [],
     "allowlist_reason": null,
     "file_evidence": "targets/vibe-app-fixed/supabase/migrations/20240101000001_schema.sql:4"
+  },
+  {
+    "schema": "public",
+    "table": "stripe_events",
+    "cmd": null,
+    "rls_enabled": true,
+    "verdict": "INFO",
+    "reason": "rls_enabled_zero_policies",
+    "detail": "RLS is enabled with zero policies - this is Postgres's default-deny; anon/authenticated cannot reach any row via PostgREST regardless of grants.",
+    "evidence_policies": [],
+    "allowlist_reason": null,
+    "file_evidence": "targets/vibe-app-fixed/supabase/migrations/20240101000005_fix_b08_idempotent_webhook.sql:10"
   }
 ]
