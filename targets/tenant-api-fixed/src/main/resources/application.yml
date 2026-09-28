@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: tenant-api-fixed
+
+  # A-09 fix: NEITHER credential below has a hardcoded fallback anywhere in
+  # this file - the app refuses to start without DB_PASSWORD AND
+  # FLYWAY_DB_PASSWORD supplied via env (see docker-compose.yml). The app's
+  # OWN runtime credential (ledgerlite_app - restricted, RLS-bound, see
+  # V3__row_level_security.sql) is also never written to disk anywhere:
+  # spring.flyway.placeholders.app_db_password (below) substitutes the SAME
+  # DB_PASSWORD value into V3's `create role ... password '${app_db_password}'`
+  # statement at migration time, so the one secret exists only in the
+  # environment, never in a committed file.
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:8186/ledgerlite}
+    username: ${DB_USER:ledgerlite_app}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+
+  # Flyway runs migrations (including creating the ledgerlite_app role and
+  # its RLS policies) as the table-OWNING role, which is deliberately a
+  # different, more privileged credential than the app's own runtime
+  # connection above - see the class comment on TenantScope.
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    url: ${FLYWAY_DB_URL:jdbc:postgresql://localhost:8186/ledgerlite}
+    user: ${FLYWAY_DB_USER:ledgerlite_dev}
+    password: ${FLYWAY_DB_PASSWORD}
+    placeholders:
+      app_db_password: ${DB_PASSWORD}
+
+app:
+  keycloak:
+    jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8181/realms/ledgerlite-fixed/protocol/openid-connect/certs}
+    internal-token-uri: ${KEYCLOAK_INTERNAL_TOKEN_URI:http://localhost:8181/realms/ledgerlite-fixed/protocol/openid-connect/token}
+    client-id: tenant-api
+  webhooks:
+    # A-13 fix: a static allow-list of hostnames a webhook test call may
+    # reach. Fictional placeholders - this demo has no webhook
+    # registration feature, so nothing is actually reachable, which is
+    # the correct fail-closed default for an allow-list with no entries
+    # configured for a given tenant yet.
+    allowed-hosts: ${WEBHOOK_ALLOWED_HOSTS:hooks.acme-fictional.example,hooks.globex-fictional.example}
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+logging:
+  level:
+    com.ledgerlite.tenantapi: INFO

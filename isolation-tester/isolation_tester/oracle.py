@@ -88,19 +88,41 @@ def list_verdict(response: httpx.Response, foreign_ids: Iterable[Any], own_ids: 
     return Classification(Verdict.DENIED, "no foreign ids present")
 
 
-def mass_assignment_verdict(created_body: dict, injected_tenant_id: str, caller_tenant_id: str) -> Classification:
-    """POST with a client-supplied tenantId. Oracle is state-based: does the
-    created row actually belong to the tenant the client asked for, instead
-    of the caller's own tenant?
+def mass_assignment_verdict_by_visibility(create_status: int, target_tenant_can_see_it: bool | None) -> Classification:
+    """POST with a client-supplied tenantId. Oracle is visibility-based, NOT
+    dependent on any response DTO field: after creating, check whether the
+    INJECTED target tenant's own LIST of their resources now includes the
+    new one. If it does, it genuinely landed in their tenant - a leak. If
+    it doesn't, it did not land there, regardless of what fields a given
+    DTO happens to expose.
+
+    Deliberately uses the target's own LIST endpoint, not a single-resource
+    GET by id: a single-resource GET is exactly what A-01/A-05 (BOLA) probe
+    already covers, and on an API where ONLY those are still broken (A-03
+    itself fixed), a GET-by-id read-back would misreport DENIED-in-A-03 as
+    LEAK purely because of the OTHER finding. Checking the target's own
+    list decouples this probe from that overlap.
+
+    A 403 creating the resource at all (a role gate unrelated to tenant
+    isolation - e.g. a viewer who simply isn't allowed to create anything)
+    is DENIED, not ERROR: if the actor can't create the resource in the
+    first place, mass-assignment is moot, and calling that an error would
+    force every fixed API with any create-side role check to look
+    untrustworthy. This is deliberately DTO-shape-independent: a correctly
+    fixed response DTO should drop tenantId/internalCost entirely (BOPLA),
+    and an oracle that required reading tenantId back out of the response
+    would then misreport a correct fix as an ERROR. See the M3 milestone
+    notes.
     """
-    actual_tenant = created_body.get("tenantId")
-    if actual_tenant is None:
-        return Classification(Verdict.ERROR, "response body had no tenantId field to inspect")
-    if actual_tenant == injected_tenant_id and injected_tenant_id != caller_tenant_id:
-        return Classification(Verdict.LEAK, f"created row landed in tenant '{actual_tenant}' (client-supplied), not caller's own tenant '{caller_tenant_id}'")
-    if actual_tenant == caller_tenant_id:
-        return Classification(Verdict.DENIED, "created row correctly belongs to the caller's own tenant")
-    return Classification(Verdict.ERROR, f"created row tenant '{actual_tenant}' matches neither caller nor injected tenant")
+    if create_status == 403:
+        return Classification(Verdict.DENIED, "actor is not permitted to create this resource at all - mass-assignment is moot")
+    if not (200 <= create_status < 300):
+        return Classification(Verdict.ERROR, f"unexpected status {create_status} creating resource")
+    if target_tenant_can_see_it is None:
+        return Classification(Verdict.ERROR, "could not determine whether the injected target tenant can see the created resource")
+    if target_tenant_can_see_it:
+        return Classification(Verdict.LEAK, "the injected target tenant's own list includes the newly created resource")
+    return Classification(Verdict.DENIED, "the injected target tenant's own list does not include the newly created resource")
 
 
 def role_verdict(response: httpx.Response) -> Classification:

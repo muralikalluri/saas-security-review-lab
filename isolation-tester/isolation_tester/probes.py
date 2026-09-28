@@ -18,7 +18,7 @@ from isolation_tester.oracle import (
     bola_verdict,
     enumeration_classify,
     list_verdict,
-    mass_assignment_verdict,
+    mass_assignment_verdict_by_visibility,
     positive_control_verdict,
     role_verdict,
 )
@@ -201,14 +201,30 @@ def run_mass_assignment_probe(
     method: str,
     path: str,
     body: dict,
-    injected_tenant_id: str,
+    target_actor: Actor,
+    target_list_path: str,
 ) -> ProbeResult:
+    """target_actor: a user of the tenant the request tries to mass-assign
+    the row INTO. target_list_path: e.g. "/invoices", used to check
+    whether the created resource's id shows up in target_actor's OWN list
+    - see mass_assignment_verdict_by_visibility for why this is a list
+    membership check, not a single-resource read-back, and why it doesn't
+    rely on any response DTO field.
+    """
     response = client.call(method, path, actor, json_body=body)
+    target_tenant_can_see_it = None
     if 200 <= response.status_code < 300:
-        created_body = response.json()
-        classification = mass_assignment_verdict(created_body, injected_tenant_id, actor.tenant.id)
-    else:
-        classification = Classification(Verdict.ERROR, f"unexpected status {response.status_code} creating resource")
+        try:
+            created_id = response.json().get("id")
+        except ValueError:
+            created_id = None
+        list_response = client.call("get", target_list_path, target_actor)
+        if created_id is not None and list_response.status_code == 200:
+            try:
+                target_tenant_can_see_it = created_id in {row.get("id") for row in list_response.json()}
+            except ValueError:
+                target_tenant_can_see_it = None
+    classification = mass_assignment_verdict_by_visibility(response.status_code, target_tenant_can_see_it)
     result = record_probe(
         collector,
         run_dir,

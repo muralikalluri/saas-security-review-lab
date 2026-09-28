@@ -35,6 +35,7 @@ services:
       - "127.0.0.1:${KEYCLOAK_HOST_PORT:-8181}:8080"
     volumes:
       - ./targets/tenant-api/keycloak/ledgerlite-realm.json:/opt/keycloak/data/import/ledgerlite-realm.json:ro
+      - ./targets/tenant-api-fixed/keycloak/ledgerlite-realm.json:/opt/keycloak/data/import/ledgerlite-fixed-realm.json:ro
     networks:
       - tenant-api-net
 
@@ -60,9 +61,60 @@ services:
     networks:
       - tenant-api-net
 
+  # --- Fixed mode (M3): a separate module/jar/DB/realm, see SPEC.md
+  # "Fixed mode" and CLAUDE.md ("baseline targets are INTENTIONALLY
+  # vulnerable" - api/postgres above must never be touched by this).
+  postgres-fixed:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ledgerlite}
+      POSTGRES_USER: ${POSTGRES_USER:-ledgerlite_dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-localdev_only_do_not_use}
+    ports:
+      - "127.0.0.1:${POSTGRES_FIXED_HOST_PORT:-8186}:5432"
+    volumes:
+      - postgres-fixed-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ledgerlite_dev} -d ${POSTGRES_DB:-ledgerlite}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - tenant-api-net
+
+  api-fixed:
+    build:
+      context: ./targets/tenant-api-fixed
+    depends_on:
+      postgres-fixed:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    environment:
+      # Flyway migrates as the table-OWNING role (same admin credential as
+      # postgres-fixed itself); the app's own runtime connection below is a
+      # separate, unprivileged, RLS-bound role created BY that migration
+      # (V3__row_level_security.sql) - see TenantScope.java.
+      FLYWAY_DB_URL: jdbc:postgresql://postgres-fixed:5432/${POSTGRES_DB:-ledgerlite}
+      FLYWAY_DB_USER: ${POSTGRES_USER:-ledgerlite_dev}
+      FLYWAY_DB_PASSWORD: ${POSTGRES_PASSWORD:-localdev_only_do_not_use}
+      DB_URL: jdbc:postgresql://postgres-fixed:5432/${POSTGRES_DB:-ledgerlite}
+      DB_USER: ledgerlite_app
+      # Single source of truth for this role's password: Flyway's V3
+      # migration creates the role with this exact value (via a Flyway
+      # placeholder, see application.yml), and the app connects with it.
+      DB_PASSWORD: ${APP_DB_PASSWORD:-apponly_local_dev_password_do_not_use}
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/ledgerlite-fixed/protocol/openid-connect/certs
+      KEYCLOAK_INTERNAL_TOKEN_URI: http://keycloak:8080/realms/ledgerlite-fixed/protocol/openid-connect/token
+    ports:
+      - "127.0.0.1:${API_FIXED_HOST_PORT:-8184}:8080"
+    networks:
+      - tenant-api-net
+
 networks:
   tenant-api-net:
     driver: bridge
 
 volumes:
   postgres-data:
+  postgres-fixed-data:

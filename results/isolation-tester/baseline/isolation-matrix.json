@@ -1,7 +1,7 @@
 {
   "run_name": "baseline",
   "base_url": "http://localhost:8183",
-  "started_at": "2026-09-27T15:37:08.493251+00:00",
+  "started_at": "2026-09-28T04:33:26.519003+00:00",
   "preflight_ok": true,
   "controls_ok": true,
   "expected_leaks": [
@@ -296,7 +296,7 @@
       "method": "GET",
       "path": "/dashboard/summary",
       "verdict": "LEAK",
-      "detail": "erin.owner@tenant-globex-002 saw a cached total of 104707.0 (tenant-agnostic cache key) instead of their own ground truth 6616.0 (populated by alice.owner@tenant-acme-001's request)",
+      "detail": "erin.owner@tenant-globex-002 saw a cached total of 104772.0 (tenant-agnostic cache key) instead of their own ground truth 6687.0 (populated by alice.owner@tenant-acme-001's request)",
       "evidence_path": "raw/cache-order__dashboard_summary_alice.owner@tenant-acme-001->erin.owner@tenant-globex-002.json"
     },
     {
@@ -307,7 +307,7 @@
       "method": "GET",
       "path": "/dashboard/summary",
       "verdict": "LEAK",
-      "detail": "erin.owner@tenant-globex-002 spoofed X-Tenant-Id=tenant-acme-001 and received tenant tenant-acme-001's total (104707.0) instead of their own",
+      "detail": "erin.owner@tenant-globex-002 spoofed X-Tenant-Id=tenant-acme-001 and received tenant tenant-acme-001's total (104772.0) instead of their own",
       "evidence_path": "raw/header-spoof__dashboard_summary_erin.owner@tenant-globex-002_spoof=tenant-acme-001.json"
     },
     {
@@ -575,70 +575,70 @@
       "evidence_path": "raw/bola__customers_4_dave.viewer@tenant-acme-001.json"
     },
     {
-      "probe_id": "bola:/invoices/exports/29:erin.owner@tenant-globex-002",
+      "probe_id": "bola:/invoices/exports/35:erin.owner@tenant-globex-002",
       "probe_type": "bola",
       "finding": "A-05",
       "actor": "erin.owner@tenant-globex-002",
       "method": "GET",
-      "path": "/invoices/exports/29",
+      "path": "/invoices/exports/35",
       "verdict": "LEAK",
       "detail": "status 200 on a foreign resource",
-      "evidence_path": "raw/bola__invoices_exports_29_erin.owner@tenant-globex-002.json"
+      "evidence_path": "raw/bola__invoices_exports_35_erin.owner@tenant-globex-002.json"
     },
     {
-      "probe_id": "bola:/invoices/exports/29:frank.viewer@tenant-globex-002",
+      "probe_id": "bola:/invoices/exports/35:frank.viewer@tenant-globex-002",
       "probe_type": "bola",
       "finding": "A-05",
       "actor": "frank.viewer@tenant-globex-002",
       "method": "GET",
-      "path": "/invoices/exports/29",
+      "path": "/invoices/exports/35",
       "verdict": "LEAK",
       "detail": "status 200 on a foreign resource",
-      "evidence_path": "raw/bola__invoices_exports_29_frank.viewer@tenant-globex-002.json"
+      "evidence_path": "raw/bola__invoices_exports_35_frank.viewer@tenant-globex-002.json"
     },
     {
-      "probe_id": "bola:/invoices/exports/30:alice.owner@tenant-acme-001",
+      "probe_id": "bola:/invoices/exports/36:alice.owner@tenant-acme-001",
       "probe_type": "bola",
       "finding": "A-05",
       "actor": "alice.owner@tenant-acme-001",
       "method": "GET",
-      "path": "/invoices/exports/30",
+      "path": "/invoices/exports/36",
       "verdict": "LEAK",
       "detail": "status 200 on a foreign resource",
-      "evidence_path": "raw/bola__invoices_exports_30_alice.owner@tenant-acme-001.json"
+      "evidence_path": "raw/bola__invoices_exports_36_alice.owner@tenant-acme-001.json"
     },
     {
-      "probe_id": "bola:/invoices/exports/30:bob.admin@tenant-acme-001",
+      "probe_id": "bola:/invoices/exports/36:bob.admin@tenant-acme-001",
       "probe_type": "bola",
       "finding": "A-05",
       "actor": "bob.admin@tenant-acme-001",
       "method": "GET",
-      "path": "/invoices/exports/30",
+      "path": "/invoices/exports/36",
       "verdict": "LEAK",
       "detail": "status 200 on a foreign resource",
-      "evidence_path": "raw/bola__invoices_exports_30_bob.admin@tenant-acme-001.json"
+      "evidence_path": "raw/bola__invoices_exports_36_bob.admin@tenant-acme-001.json"
     },
     {
-      "probe_id": "bola:/invoices/exports/30:carol.accountant@tenant-acme-001",
+      "probe_id": "bola:/invoices/exports/36:carol.accountant@tenant-acme-001",
       "probe_type": "bola",
       "finding": "A-05",
       "actor": "carol.accountant@tenant-acme-001",
       "method": "GET",
-      "path": "/invoices/exports/30",
+      "path": "/invoices/exports/36",
       "verdict": "LEAK",
       "detail": "status 200 on a foreign resource",
-      "evidence_path": "raw/bola__invoices_exports_30_carol.accountant@tenant-acme-001.json"
+      "evidence_path": "raw/bola__invoices_exports_36_carol.accountant@tenant-acme-001.json"
     },
     {
-      "probe_id": "bola:/invoices/exports/30:dave.viewer@tenant-acme-001",
+      "probe_id": "bola:/invoices/exports/36:dave.viewer@tenant-acme-001",
       "probe_type": "bola",
       "finding": "A-05",
       "actor": "dave.viewer@tenant-acme-001",
       "method": "GET",
-      "path": "/invoices/exports/30",
+      "path": "/invoices/exports/36",
       "verdict": "LEAK",
       "detail": "status 200 on a foreign resource",
-      "evidence_path": "raw/bola__invoices_exports_30_dave.viewer@tenant-acme-001.json"
+      "evidence_path": "raw/bola__invoices_exports_36_dave.viewer@tenant-acme-001.json"
     },
     {
       "probe_id": "id-enum:/invoices/1:erin.owner@tenant-globex-002:id=1",
@@ -1197,8 +1197,8 @@
       "actor": "erin.owner@tenant-globex-002",
       "method": "GET",
       "path": "/invoices/51",
-      "verdict": "DENIED",
-      "detail": "id=51 classified as 'denied' (status 404)",
+      "verdict": "ALLOWED",
+      "detail": "id=51 classified as 'own' (status 200)",
       "evidence_path": "raw/id-enum__invoices_51_erin.owner@tenant-globex-002_id=51.json"
     },
     {
@@ -1208,8 +1208,8 @@
       "actor": "erin.owner@tenant-globex-002",
       "method": "GET",
       "path": "/invoices/52",
-      "verdict": "DENIED",
-      "detail": "id=52 classified as 'denied' (status 404)",
+      "verdict": "ALLOWED",
+      "detail": "id=52 classified as 'own' (status 200)",
       "evidence_path": "raw/id-enum__invoices_52_erin.owner@tenant-globex-002_id=52.json"
     },
     {
@@ -1219,8 +1219,8 @@
       "actor": "erin.owner@tenant-globex-002",
       "method": "GET",
       "path": "/invoices/53",
-      "verdict": "DENIED",
-      "detail": "id=53 classified as 'denied' (status 404)",
+      "verdict": "ALLOWED",
+      "detail": "id=53 classified as 'own' (status 200)",
       "evidence_path": "raw/id-enum__invoices_53_erin.owner@tenant-globex-002_id=53.json"
     },
     {
@@ -1230,8 +1230,8 @@
       "actor": "erin.owner@tenant-globex-002",
       "method": "GET",
       "path": "/invoices/54",
-      "verdict": "DENIED",
-      "detail": "id=54 classified as 'denied' (status 404)",
+      "verdict": "ALLOWED",
+      "detail": "id=54 classified as 'own' (status 200)",
       "evidence_path": "raw/id-enum__invoices_54_erin.owner@tenant-globex-002_id=54.json"
     },
     {
@@ -1241,75 +1241,317 @@
       "actor": "erin.owner@tenant-globex-002",
       "method": "GET",
       "path": "/invoices/55",
-      "verdict": "DENIED",
-      "detail": "id=55 classified as 'denied' (status 404)",
+      "verdict": "LEAK",
+      "detail": "id=55 classified as 'leak' (status 200)",
       "evidence_path": "raw/id-enum__invoices_55_erin.owner@tenant-globex-002_id=55.json"
     },
     {
-      "probe_id": "id-enum:/invoices/exports/29:erin.owner@tenant-globex-002:id=29",
+      "probe_id": "id-enum:/invoices/56:erin.owner@tenant-globex-002:id=56",
       "probe_type": "id-enum",
-      "finding": "A-05",
+      "finding": "A-01",
       "actor": "erin.owner@tenant-globex-002",
       "method": "GET",
-      "path": "/invoices/exports/29",
+      "path": "/invoices/56",
       "verdict": "LEAK",
-      "detail": "id=29 classified as 'leak' (status 200)",
-      "evidence_path": "raw/id-enum__invoices_exports_29_erin.owner@tenant-globex-002_id=29.json"
+      "detail": "id=56 classified as 'leak' (status 200)",
+      "evidence_path": "raw/id-enum__invoices_56_erin.owner@tenant-globex-002_id=56.json"
     },
     {
-      "probe_id": "id-enum:/invoices/exports/30:erin.owner@tenant-globex-002:id=30",
+      "probe_id": "id-enum:/invoices/57:erin.owner@tenant-globex-002:id=57",
       "probe_type": "id-enum",
-      "finding": "A-05",
+      "finding": "A-01",
       "actor": "erin.owner@tenant-globex-002",
       "method": "GET",
-      "path": "/invoices/exports/30",
+      "path": "/invoices/57",
+      "verdict": "LEAK",
+      "detail": "id=57 classified as 'leak' (status 200)",
+      "evidence_path": "raw/id-enum__invoices_57_erin.owner@tenant-globex-002_id=57.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/58:erin.owner@tenant-globex-002:id=58",
+      "probe_type": "id-enum",
+      "finding": "A-01",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/58",
+      "verdict": "LEAK",
+      "detail": "id=58 classified as 'leak' (status 200)",
+      "evidence_path": "raw/id-enum__invoices_58_erin.owner@tenant-globex-002_id=58.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/59:erin.owner@tenant-globex-002:id=59",
+      "probe_type": "id-enum",
+      "finding": "A-01",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/59",
       "verdict": "ALLOWED",
-      "detail": "id=30 classified as 'own' (status 200)",
-      "evidence_path": "raw/id-enum__invoices_exports_30_erin.owner@tenant-globex-002_id=30.json"
+      "detail": "id=59 classified as 'own' (status 200)",
+      "evidence_path": "raw/id-enum__invoices_59_erin.owner@tenant-globex-002_id=59.json"
     },
     {
-      "probe_id": "id-enum:/invoices/exports/31:erin.owner@tenant-globex-002:id=31",
+      "probe_id": "id-enum:/invoices/60:erin.owner@tenant-globex-002:id=60",
       "probe_type": "id-enum",
-      "finding": "A-05",
+      "finding": "A-01",
       "actor": "erin.owner@tenant-globex-002",
       "method": "GET",
-      "path": "/invoices/exports/31",
-      "verdict": "DENIED",
-      "detail": "id=31 classified as 'denied' (status 404)",
-      "evidence_path": "raw/id-enum__invoices_exports_31_erin.owner@tenant-globex-002_id=31.json"
+      "path": "/invoices/60",
+      "verdict": "ALLOWED",
+      "detail": "id=60 classified as 'own' (status 200)",
+      "evidence_path": "raw/id-enum__invoices_60_erin.owner@tenant-globex-002_id=60.json"
     },
     {
-      "probe_id": "id-enum:/invoices/exports/32:erin.owner@tenant-globex-002:id=32",
+      "probe_id": "id-enum:/invoices/61:erin.owner@tenant-globex-002:id=61",
       "probe_type": "id-enum",
-      "finding": "A-05",
+      "finding": "A-01",
       "actor": "erin.owner@tenant-globex-002",
       "method": "GET",
-      "path": "/invoices/exports/32",
-      "verdict": "DENIED",
-      "detail": "id=32 classified as 'denied' (status 404)",
-      "evidence_path": "raw/id-enum__invoices_exports_32_erin.owner@tenant-globex-002_id=32.json"
+      "path": "/invoices/61",
+      "verdict": "ALLOWED",
+      "detail": "id=61 classified as 'own' (status 200)",
+      "evidence_path": "raw/id-enum__invoices_61_erin.owner@tenant-globex-002_id=61.json"
     },
     {
-      "probe_id": "id-enum:/invoices/exports/33:erin.owner@tenant-globex-002:id=33",
+      "probe_id": "id-enum:/invoices/62:erin.owner@tenant-globex-002:id=62",
       "probe_type": "id-enum",
-      "finding": "A-05",
+      "finding": "A-01",
       "actor": "erin.owner@tenant-globex-002",
       "method": "GET",
-      "path": "/invoices/exports/33",
-      "verdict": "DENIED",
-      "detail": "id=33 classified as 'denied' (status 404)",
-      "evidence_path": "raw/id-enum__invoices_exports_33_erin.owner@tenant-globex-002_id=33.json"
+      "path": "/invoices/62",
+      "verdict": "ALLOWED",
+      "detail": "id=62 classified as 'own' (status 200)",
+      "evidence_path": "raw/id-enum__invoices_62_erin.owner@tenant-globex-002_id=62.json"
     },
     {
-      "probe_id": "id-enum:/invoices/exports/34:erin.owner@tenant-globex-002:id=34",
+      "probe_id": "id-enum:/invoices/63:erin.owner@tenant-globex-002:id=63",
       "probe_type": "id-enum",
-      "finding": "A-05",
+      "finding": "A-01",
       "actor": "erin.owner@tenant-globex-002",
       "method": "GET",
-      "path": "/invoices/exports/34",
+      "path": "/invoices/63",
+      "verdict": "ALLOWED",
+      "detail": "id=63 classified as 'own' (status 200)",
+      "evidence_path": "raw/id-enum__invoices_63_erin.owner@tenant-globex-002_id=63.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/64:erin.owner@tenant-globex-002:id=64",
+      "probe_type": "id-enum",
+      "finding": "A-01",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/64",
+      "verdict": "LEAK",
+      "detail": "id=64 classified as 'leak' (status 200)",
+      "evidence_path": "raw/id-enum__invoices_64_erin.owner@tenant-globex-002_id=64.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/65:erin.owner@tenant-globex-002:id=65",
+      "probe_type": "id-enum",
+      "finding": "A-01",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/65",
+      "verdict": "LEAK",
+      "detail": "id=65 classified as 'leak' (status 200)",
+      "evidence_path": "raw/id-enum__invoices_65_erin.owner@tenant-globex-002_id=65.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/66:erin.owner@tenant-globex-002:id=66",
+      "probe_type": "id-enum",
+      "finding": "A-01",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/66",
+      "verdict": "LEAK",
+      "detail": "id=66 classified as 'leak' (status 200)",
+      "evidence_path": "raw/id-enum__invoices_66_erin.owner@tenant-globex-002_id=66.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/67:erin.owner@tenant-globex-002:id=67",
+      "probe_type": "id-enum",
+      "finding": "A-01",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/67",
+      "verdict": "ALLOWED",
+      "detail": "id=67 classified as 'own' (status 200)",
+      "evidence_path": "raw/id-enum__invoices_67_erin.owner@tenant-globex-002_id=67.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/68:erin.owner@tenant-globex-002:id=68",
+      "probe_type": "id-enum",
+      "finding": "A-01",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/68",
+      "verdict": "ALLOWED",
+      "detail": "id=68 classified as 'own' (status 200)",
+      "evidence_path": "raw/id-enum__invoices_68_erin.owner@tenant-globex-002_id=68.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/69:erin.owner@tenant-globex-002:id=69",
+      "probe_type": "id-enum",
+      "finding": "A-01",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/69",
+      "verdict": "ALLOWED",
+      "detail": "id=69 classified as 'own' (status 200)",
+      "evidence_path": "raw/id-enum__invoices_69_erin.owner@tenant-globex-002_id=69.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/70:erin.owner@tenant-globex-002:id=70",
+      "probe_type": "id-enum",
+      "finding": "A-01",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/70",
+      "verdict": "ALLOWED",
+      "detail": "id=70 classified as 'own' (status 200)",
+      "evidence_path": "raw/id-enum__invoices_70_erin.owner@tenant-globex-002_id=70.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/71:erin.owner@tenant-globex-002:id=71",
+      "probe_type": "id-enum",
+      "finding": "A-01",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/71",
+      "verdict": "ALLOWED",
+      "detail": "id=71 classified as 'own' (status 200)",
+      "evidence_path": "raw/id-enum__invoices_71_erin.owner@tenant-globex-002_id=71.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/72:erin.owner@tenant-globex-002:id=72",
+      "probe_type": "id-enum",
+      "finding": "A-01",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/72",
+      "verdict": "ALLOWED",
+      "detail": "id=72 classified as 'own' (status 200)",
+      "evidence_path": "raw/id-enum__invoices_72_erin.owner@tenant-globex-002_id=72.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/73:erin.owner@tenant-globex-002:id=73",
+      "probe_type": "id-enum",
+      "finding": "A-01",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/73",
+      "verdict": "LEAK",
+      "detail": "id=73 classified as 'leak' (status 200)",
+      "evidence_path": "raw/id-enum__invoices_73_erin.owner@tenant-globex-002_id=73.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/74:erin.owner@tenant-globex-002:id=74",
+      "probe_type": "id-enum",
+      "finding": "A-01",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/74",
+      "verdict": "LEAK",
+      "detail": "id=74 classified as 'leak' (status 200)",
+      "evidence_path": "raw/id-enum__invoices_74_erin.owner@tenant-globex-002_id=74.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/75:erin.owner@tenant-globex-002:id=75",
+      "probe_type": "id-enum",
+      "finding": "A-01",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/75",
+      "verdict": "LEAK",
+      "detail": "id=75 classified as 'leak' (status 200)",
+      "evidence_path": "raw/id-enum__invoices_75_erin.owner@tenant-globex-002_id=75.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/76:erin.owner@tenant-globex-002:id=76",
+      "probe_type": "id-enum",
+      "finding": "A-01",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/76",
+      "verdict": "LEAK",
+      "detail": "id=76 classified as 'leak' (status 200)",
+      "evidence_path": "raw/id-enum__invoices_76_erin.owner@tenant-globex-002_id=76.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/77:erin.owner@tenant-globex-002:id=77",
+      "probe_type": "id-enum",
+      "finding": "A-01",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/77",
+      "verdict": "ALLOWED",
+      "detail": "id=77 classified as 'own' (status 200)",
+      "evidence_path": "raw/id-enum__invoices_77_erin.owner@tenant-globex-002_id=77.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/78:erin.owner@tenant-globex-002:id=78",
+      "probe_type": "id-enum",
+      "finding": "A-01",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/78",
+      "verdict": "ALLOWED",
+      "detail": "id=78 classified as 'own' (status 200)",
+      "evidence_path": "raw/id-enum__invoices_78_erin.owner@tenant-globex-002_id=78.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/79:erin.owner@tenant-globex-002:id=79",
+      "probe_type": "id-enum",
+      "finding": "A-01",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/79",
       "verdict": "DENIED",
-      "detail": "id=34 classified as 'denied' (status 404)",
-      "evidence_path": "raw/id-enum__invoices_exports_34_erin.owner@tenant-globex-002_id=34.json"
+      "detail": "id=79 classified as 'denied' (status 404)",
+      "evidence_path": "raw/id-enum__invoices_79_erin.owner@tenant-globex-002_id=79.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/80:erin.owner@tenant-globex-002:id=80",
+      "probe_type": "id-enum",
+      "finding": "A-01",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/80",
+      "verdict": "DENIED",
+      "detail": "id=80 classified as 'denied' (status 404)",
+      "evidence_path": "raw/id-enum__invoices_80_erin.owner@tenant-globex-002_id=80.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/81:erin.owner@tenant-globex-002:id=81",
+      "probe_type": "id-enum",
+      "finding": "A-01",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/81",
+      "verdict": "DENIED",
+      "detail": "id=81 classified as 'denied' (status 404)",
+      "evidence_path": "raw/id-enum__invoices_81_erin.owner@tenant-globex-002_id=81.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/82:erin.owner@tenant-globex-002:id=82",
+      "probe_type": "id-enum",
+      "finding": "A-01",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/82",
+      "verdict": "DENIED",
+      "detail": "id=82 classified as 'denied' (status 404)",
+      "evidence_path": "raw/id-enum__invoices_82_erin.owner@tenant-globex-002_id=82.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/83:erin.owner@tenant-globex-002:id=83",
+      "probe_type": "id-enum",
+      "finding": "A-01",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/83",
+      "verdict": "DENIED",
+      "detail": "id=83 classified as 'denied' (status 404)",
+      "evidence_path": "raw/id-enum__invoices_83_erin.owner@tenant-globex-002_id=83.json"
     },
     {
       "probe_id": "id-enum:/invoices/exports/35:erin.owner@tenant-globex-002:id=35",
@@ -1318,9 +1560,75 @@
       "actor": "erin.owner@tenant-globex-002",
       "method": "GET",
       "path": "/invoices/exports/35",
-      "verdict": "DENIED",
-      "detail": "id=35 classified as 'denied' (status 404)",
+      "verdict": "LEAK",
+      "detail": "id=35 classified as 'leak' (status 200)",
       "evidence_path": "raw/id-enum__invoices_exports_35_erin.owner@tenant-globex-002_id=35.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/exports/36:erin.owner@tenant-globex-002:id=36",
+      "probe_type": "id-enum",
+      "finding": "A-05",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/exports/36",
+      "verdict": "ALLOWED",
+      "detail": "id=36 classified as 'own' (status 200)",
+      "evidence_path": "raw/id-enum__invoices_exports_36_erin.owner@tenant-globex-002_id=36.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/exports/37:erin.owner@tenant-globex-002:id=37",
+      "probe_type": "id-enum",
+      "finding": "A-05",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/exports/37",
+      "verdict": "DENIED",
+      "detail": "id=37 classified as 'denied' (status 404)",
+      "evidence_path": "raw/id-enum__invoices_exports_37_erin.owner@tenant-globex-002_id=37.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/exports/38:erin.owner@tenant-globex-002:id=38",
+      "probe_type": "id-enum",
+      "finding": "A-05",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/exports/38",
+      "verdict": "DENIED",
+      "detail": "id=38 classified as 'denied' (status 404)",
+      "evidence_path": "raw/id-enum__invoices_exports_38_erin.owner@tenant-globex-002_id=38.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/exports/39:erin.owner@tenant-globex-002:id=39",
+      "probe_type": "id-enum",
+      "finding": "A-05",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/exports/39",
+      "verdict": "DENIED",
+      "detail": "id=39 classified as 'denied' (status 404)",
+      "evidence_path": "raw/id-enum__invoices_exports_39_erin.owner@tenant-globex-002_id=39.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/exports/40:erin.owner@tenant-globex-002:id=40",
+      "probe_type": "id-enum",
+      "finding": "A-05",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/exports/40",
+      "verdict": "DENIED",
+      "detail": "id=40 classified as 'denied' (status 404)",
+      "evidence_path": "raw/id-enum__invoices_exports_40_erin.owner@tenant-globex-002_id=40.json"
+    },
+    {
+      "probe_id": "id-enum:/invoices/exports/41:erin.owner@tenant-globex-002:id=41",
+      "probe_type": "id-enum",
+      "finding": "A-05",
+      "actor": "erin.owner@tenant-globex-002",
+      "method": "GET",
+      "path": "/invoices/exports/41",
+      "verdict": "DENIED",
+      "detail": "id=41 classified as 'denied' (status 404)",
+      "evidence_path": "raw/id-enum__invoices_exports_41_erin.owner@tenant-globex-002_id=41.json"
     },
     {
       "probe_id": "list-foreign-rows:/invoices:alice.owner@tenant-acme-001",
@@ -1759,7 +2067,7 @@
       "method": "POST",
       "path": "/invoices",
       "verdict": "LEAK",
-      "detail": "created row landed in tenant 'tenant-globex-002' (client-supplied), not caller's own tenant 'tenant-acme-001'",
+      "detail": "the injected target tenant's own list includes the newly created resource",
       "evidence_path": "raw/mass-assignment__invoices_alice.owner@tenant-acme-001.json"
     },
     {
@@ -1770,7 +2078,7 @@
       "method": "POST",
       "path": "/invoices",
       "verdict": "LEAK",
-      "detail": "created row landed in tenant 'tenant-globex-002' (client-supplied), not caller's own tenant 'tenant-acme-001'",
+      "detail": "the injected target tenant's own list includes the newly created resource",
       "evidence_path": "raw/mass-assignment__invoices_bob.admin@tenant-acme-001.json"
     },
     {
@@ -1781,7 +2089,7 @@
       "method": "POST",
       "path": "/invoices",
       "verdict": "LEAK",
-      "detail": "created row landed in tenant 'tenant-globex-002' (client-supplied), not caller's own tenant 'tenant-acme-001'",
+      "detail": "the injected target tenant's own list includes the newly created resource",
       "evidence_path": "raw/mass-assignment__invoices_carol.accountant@tenant-acme-001.json"
     },
     {
@@ -1792,7 +2100,7 @@
       "method": "POST",
       "path": "/invoices",
       "verdict": "LEAK",
-      "detail": "created row landed in tenant 'tenant-globex-002' (client-supplied), not caller's own tenant 'tenant-acme-001'",
+      "detail": "the injected target tenant's own list includes the newly created resource",
       "evidence_path": "raw/mass-assignment__invoices_dave.viewer@tenant-acme-001.json"
     },
     {
@@ -1803,7 +2111,7 @@
       "method": "POST",
       "path": "/invoices",
       "verdict": "LEAK",
-      "detail": "created row landed in tenant 'tenant-acme-001' (client-supplied), not caller's own tenant 'tenant-globex-002'",
+      "detail": "the injected target tenant's own list includes the newly created resource",
       "evidence_path": "raw/mass-assignment__invoices_erin.owner@tenant-globex-002.json"
     },
     {
@@ -1814,7 +2122,7 @@
       "method": "POST",
       "path": "/invoices",
       "verdict": "LEAK",
-      "detail": "created row landed in tenant 'tenant-acme-001' (client-supplied), not caller's own tenant 'tenant-globex-002'",
+      "detail": "the injected target tenant's own list includes the newly created resource",
       "evidence_path": "raw/mass-assignment__invoices_frank.viewer@tenant-globex-002.json"
     },
     {

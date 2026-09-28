@@ -14,7 +14,7 @@ from isolation_tester.oracle import (
     bola_verdict,
     enumeration_classify,
     list_verdict,
-    mass_assignment_verdict,
+    mass_assignment_verdict_by_visibility,
     positive_control_verdict,
     role_verdict,
 )
@@ -79,21 +79,33 @@ class TestListVerdict:
         assert c.verdict == Verdict.ERROR
 
 
-class TestMassAssignmentVerdict:
-    def test_injected_foreign_tenant_wins_is_leak(self):
-        c = mass_assignment_verdict({"tenantId": "tenant-b"}, injected_tenant_id="tenant-b", caller_tenant_id="tenant-a")
+class TestMassAssignmentVerdictByVisibility:
+    # Deliberately does NOT depend on any response DTO field (e.g.
+    # tenantId) - a correctly fixed API drops that field entirely (BOPLA),
+    # and an oracle that required it would misreport a correct fix as an
+    # ERROR. See M3 notes / probes.run_mass_assignment_probe.
+
+    def test_target_tenant_list_includes_it_is_leak(self):
+        c = mass_assignment_verdict_by_visibility(create_status=200, target_tenant_can_see_it=True)
         assert c.verdict == Verdict.LEAK
 
-    def test_ignored_injection_falls_back_to_caller_is_denied(self):
-        c = mass_assignment_verdict({"tenantId": "tenant-a"}, injected_tenant_id="tenant-b", caller_tenant_id="tenant-a")
+    def test_target_tenant_list_does_not_include_it_is_denied(self):
+        c = mass_assignment_verdict_by_visibility(create_status=200, target_tenant_can_see_it=False)
         assert c.verdict == Verdict.DENIED
 
-    def test_missing_tenant_field_is_error(self):
-        c = mass_assignment_verdict({}, injected_tenant_id="tenant-b", caller_tenant_id="tenant-a")
+    def test_create_forbidden_by_an_unrelated_role_gate_is_denied_not_error(self):
+        # The actor simply isn't allowed to create this resource at all -
+        # mass-assignment is moot, and this must never look like a broken
+        # run just because a fixed API also added a role check.
+        c = mass_assignment_verdict_by_visibility(create_status=403, target_tenant_can_see_it=None)
+        assert c.verdict == Verdict.DENIED
+
+    def test_create_failure_is_error(self):
+        c = mass_assignment_verdict_by_visibility(create_status=500, target_tenant_can_see_it=None)
         assert c.verdict == Verdict.ERROR
 
-    def test_unexpected_third_tenant_is_error(self):
-        c = mass_assignment_verdict({"tenantId": "tenant-c"}, injected_tenant_id="tenant-b", caller_tenant_id="tenant-a")
+    def test_undetermined_visibility_after_successful_create_is_error(self):
+        c = mass_assignment_verdict_by_visibility(create_status=200, target_tenant_can_see_it=None)
         assert c.verdict == Verdict.ERROR
 
 

@@ -12,20 +12,19 @@ from isolation_tester import runtime
 from isolation_tester.fixtures_data import actors_for_tenant
 from isolation_tester.openapi_loader import operations_with_probe
 from isolation_tester.probes import run_role_probe
+from isolation_tester.roles import rank_of
 
 pytestmark = pytest.mark.order_phase(30)
 
 _CONFIG = runtime.get_config()
 _OPERATIONS = runtime.get_operations()
 
-_ROLE_RANK = {"owner": 3, "admin": 2, "accountant": 1, "viewer": 0}
-
 _CASES = []
 for _op, _probe in operations_with_probe(_OPERATIONS, "role-restricted"):
-    min_rank = _ROLE_RANK.get(_op.min_role, 0)
+    min_rank = rank_of(_op.min_role) if _op.min_role else 0
     for _tenant in _CONFIG.tenants:
         for _actor in actors_for_tenant(_CONFIG, _tenant):
-            if _ROLE_RANK.get(_actor.role, 0) < min_rank:
+            if rank_of(_actor.role) < min_rank:
                 _CASES.append((_op.path, _actor, _probe.finding))
 
 _IDS = [f"{p}:{a.label}" for p, a, _ in _CASES]

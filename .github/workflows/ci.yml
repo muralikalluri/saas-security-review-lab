@@ -14,7 +14,7 @@ jobs:
         run: |
           set -euo pipefail
           BANNER="Deliberately insecure for demonstration"
-          for f in README.md targets/tenant-api/README.md targets/vibe-app/README.md docker-compose.yml; do
+          for f in README.md targets/tenant-api/README.md targets/tenant-api-fixed/README.md targets/vibe-app/README.md docker-compose.yml; do
             grep -q "$BANNER" "$f" || { echo "Missing banner in $f"; exit 1; }
           done
 
@@ -24,8 +24,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validate docker-compose config
         run: docker compose config -q
-      - name: Build tenant-api image
-        run: docker compose build api
+      - name: Build tenant-api images (baseline and fixed)
+        run: docker compose build api api-fixed
       - name: Smoke-test postgres service
         run: |
           set -euo pipefail
@@ -53,6 +53,19 @@ jobs:
           cache: maven
       - name: Build and test tenant-api
         working-directory: targets/tenant-api
+        run: mvn -B verify
+
+  tenant-api-fixed-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Build and test tenant-api-fixed
+        working-directory: targets/tenant-api-fixed
         run: mvn -B verify
 
   isolation-tester-unit-tests:

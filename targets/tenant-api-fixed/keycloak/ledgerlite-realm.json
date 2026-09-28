@@ -1,0 +1,133 @@
+{
+  "realm": "ledgerlite-fixed",
+  "enabled": true,
+  "accessTokenLifespan": 300,
+  "ssoSessionMaxLifespan": 3600,
+  "ssoSessionIdleTimeout": 1800,
+  "revokeRefreshToken": true,
+  "refreshTokenMaxReuse": 0,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "roles": {
+    "realm": [
+      { "name": "owner", "description": "Company owner - full access" },
+      { "name": "admin", "description": "Company admin" },
+      { "name": "accountant", "description": "Accounting staff" },
+      { "name": "viewer", "description": "Read-only access" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "tenant-api",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocolMappers": [
+        {
+          "name": "tenant_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "tenant_id",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "tenant_id",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "company_name",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "company_name",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "company_name",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "tenant-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "tenant-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "alice.owner",
+      "enabled": true,
+      "email": "alice@acme-fictional.example",
+      "firstName": "Alice",
+      "lastName": "Owner",
+      "attributes": { "tenant_id": ["tenant-acme-001"], "company_name": ["Acme Fictional Co"] },
+      "credentials": [{ "type": "password", "value": "LabPassword-Only-1", "temporary": false }],
+      "realmRoles": ["owner"]
+    },
+    {
+      "username": "bob.admin",
+      "enabled": true,
+      "email": "bob@acme-fictional.example",
+      "firstName": "Bob",
+      "lastName": "Admin",
+      "attributes": { "tenant_id": ["tenant-acme-001"], "company_name": ["Acme Fictional Co"] },
+      "credentials": [{ "type": "password", "value": "LabPassword-Only-1", "temporary": false }],
+      "realmRoles": ["admin"]
+    },
+    {
+      "username": "carol.accountant",
+      "enabled": true,
+      "email": "carol@acme-fictional.example",
+      "firstName": "Carol",
+      "lastName": "Accountant",
+      "attributes": { "tenant_id": ["tenant-acme-001"], "company_name": ["Acme Fictional Co"] },
+      "credentials": [{ "type": "password", "value": "LabPassword-Only-1", "temporary": false }],
+      "realmRoles": ["accountant"]
+    },
+    {
+      "username": "dave.viewer",
+      "enabled": true,
+      "email": "dave@acme-fictional.example",
+      "firstName": "Dave",
+      "lastName": "Viewer",
+      "attributes": { "tenant_id": ["tenant-acme-001"], "company_name": ["Acme Fictional Co"] },
+      "credentials": [{ "type": "password", "value": "LabPassword-Only-1", "temporary": false }],
+      "realmRoles": ["viewer"]
+    },
+    {
+      "username": "erin.owner",
+      "enabled": true,
+      "email": "erin@globex-fictional.example",
+      "firstName": "Erin",
+      "lastName": "Owner",
+      "attributes": { "tenant_id": ["tenant-globex-002"], "company_name": ["Globex Fictional Inc"] },
+      "credentials": [{ "type": "password", "value": "LabPassword-Only-1", "temporary": false }],
+      "realmRoles": ["owner"]
+    },
+    {
+      "username": "frank.viewer",
+      "enabled": true,
+      "email": "frank@globex-fictional.example",
+      "firstName": "Frank",
+      "lastName": "Viewer",
+      "attributes": { "tenant_id": ["tenant-globex-002"], "company_name": ["Globex Fictional Inc"] },
+      "credentials": [{ "type": "password", "value": "LabPassword-Only-1", "temporary": false }],
+      "realmRoles": ["viewer"]
+    }
+  ]
+}

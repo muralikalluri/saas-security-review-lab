@@ -70,6 +70,13 @@ paths:
       operationId: createInvoice
       x-tenant-isolation:
         resource: invoice
+        # min_role: the FIXED profile restricts invoice creation to
+        # accountant-and-above (a role decision independent of A-03 - see
+        # each controller's @PreAuthorize). The probe below only tests
+        # actors who are allowed to create an invoice AT ALL, so a role
+        # policy this harness doesn't otherwise know about can't turn into
+        # a spurious ERROR unrelated to tenant isolation.
+        min_role: accountant
         probes:
           - { type: mass-assignment, finding: A-03 }
       requestBody:
