@@ -1,0 +1,51 @@
+rules:
+  - id: b01-nextpublic-service-role-key
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      A NEXT_PUBLIC_ environment variable name suggests it holds a
+      service-role or other secret credential. Next.js inlines every
+      NEXT_PUBLIC_* value into the client JS bundle at build time - anyone,
+      logged in or not, can read it straight out of compiled JS with no
+      auth required (SPEC.md B-01). This is a name-based heuristic: it
+      cannot see what the value actually is, only that the variable name
+      combines a public-bundling prefix with a secret-shaped suffix.
+    metadata:
+      finding: B-01
+      category: security
+      confidence: HIGH
+    patterns:
+      - pattern: process.env.$VAR
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: ^NEXT_PUBLIC_.*(SERVICE_ROLE|SECRET|PRIVATE_KEY|API_SECRET)
+    paths:
+      exclude:
+        - "*.test.ts"
+        - "*.test.tsx"
+
+  - id: b05-missing-ownership-check
+    languages: [typescript]
+    severity: WARNING
+    message: >-
+      This Supabase update/delete targets a row by its own "id" but the
+      same call chain never also filters by an ownership column (e.g.
+      .eq("user_id", ...)). If row-level security doesn't already scope
+      this table to the calling user, any authenticated caller can mutate
+      a row that belongs to someone else (SPEC.md B-05). Heuristic, not a
+      proof: once RLS scopes rows by auth.uid() (see the fixed branch),
+      an unfiltered query here becomes safe again - this rule cannot see
+      RLS state, only the application code, so treat a hit as "verify
+      ownership is enforced somewhere," not a guaranteed bug.
+    metadata:
+      finding: B-05
+      category: security
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: $SB.from($TABLE).update($X).eq("id", $ID)
+          - pattern: $SB.from($TABLE).delete().eq("id", $ID)
+      - pattern-not-inside: $SB.from($TABLE).update($X).eq("id", $ID).eq("user_id", $UID)
+      - pattern-not-inside: $SB.from($TABLE).delete().eq("id", $ID).eq("user_id", $UID)
+      - pattern-not-inside: '$SB.from($TABLE).update($X).eq("id", $ID).match({ user_id: $UID })'
+      - pattern-not-inside: '$SB.from($TABLE).delete().eq("id", $ID).match({ user_id: $UID })'

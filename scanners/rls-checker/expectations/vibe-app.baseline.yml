@@ -1,0 +1,12 @@
+# Deliberately insecure for demonstration. Do not deploy.
+# Expected FAIL set for targets/vibe-app's BASELINE (M4). Exactly B-03
+# (bookings, RLS never enabled) and B-04 (profiles, open SELECT policy).
+# `classes` is intentionally open too but lives in rls-allowlist.yml instead
+# of here, so it never counts as a leak.
+expected_fail:
+  - schema: public
+    table: bookings
+    cmd: null
+  - schema: public
+    table: profiles
+    cmd: SELECT

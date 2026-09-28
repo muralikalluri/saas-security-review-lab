@@ -1,0 +1,14 @@
+# Deliberately insecure for demonstration. Do not deploy.
+# Tables where a permissive `using (true)` (or equivalent) policy is
+# INTENTIONAL, not a seeded flaw - the checker still reports these (as
+# ALLOWLISTED, never silently skipped), it just doesn't count them as FAIL.
+# Adding a table here is a reviewable decision, not a code change to the
+# checker's classification logic.
+allowlist:
+  - schema: public
+    table: classes
+    reason: >-
+      Public class listing - StudioBook's own class catalog is meant to be
+      readable by anyone, logged in or not (see
+      supabase/migrations/20240101000002_rls_and_storage.sql,
+      classes_select_all). Not one of SPEC.md's seeded B-xx findings.

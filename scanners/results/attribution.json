@@ -1,0 +1,247 @@
+{
+  "A-01": {
+    "evidence_files": [
+      "targets/tenant-api/src/main/java/com/ledgerlite/tenantapi/invoice/InvoiceController.java"
+    ],
+    "method": "harness",
+    "title": "BOLA: GET /invoices/{id} loads by id without tenant check",
+    "tools": [
+      "isolation-tester"
+    ]
+  },
+  "A-02": {
+    "evidence_files": [
+      "targets/tenant-api/src/main/java/com/ledgerlite/tenantapi/customer/CustomerController.java"
+    ],
+    "method": "harness",
+    "title": "BOLA: PUT /customers/{id} updates across tenants",
+    "tools": [
+      "isolation-tester"
+    ]
+  },
+  "A-03": {
+    "evidence_files": [
+      "targets/tenant-api/src/main/java/com/ledgerlite/tenantapi/invoice/InvoiceController.java",
+      "targets/tenant-api/src/main/java/com/ledgerlite/tenantapi/invoice/InvoiceCreateRequest.java",
+      "targets/tenant-api/src/main/java/com/ledgerlite/tenantapi/invoice/InvoiceResponse.java"
+    ],
+    "method": "harness",
+    "title": "BOPLA: invoice JSON exposes tenantId/cost fields; mass assignment sets tenantId",
+    "tools": [
+      "isolation-tester"
+    ]
+  },
+  "A-04": {
+    "evidence_files": [
+      "targets/tenant-api/src/main/java/com/ledgerlite/tenantapi/customer/CustomerController.java",
+      "targets/tenant-api/src/main/java/com/ledgerlite/tenantapi/invoice/InvoiceController.java",
+      "targets/tenant-api/src/main/java/com/ledgerlite/tenantapi/tenant/TenantContext.java"
+    ],
+    "method": "harness",
+    "title": "Tenant taken from X-Tenant-Id header instead of the token",
+    "tools": [
+      "isolation-tester"
+    ]
+  },
+  "A-05": {
+    "evidence_files": [
+      "targets/tenant-api/src/main/java/com/ledgerlite/tenantapi/export/ExportController.java",
+      "targets/tenant-api/src/main/java/com/ledgerlite/tenantapi/export/ExportService.java"
+    ],
+    "method": "harness",
+    "title": "Report export job builds files in shared temp path keyed by sequential id",
+    "tools": [
+      "isolation-tester"
+    ]
+  },
+  "A-06": {
+    "evidence_files": [
+      "targets/tenant-api/src/main/java/com/ledgerlite/tenantapi/dashboard/DashboardController.java"
+    ],
+    "method": "harness",
+    "title": "Cache key missing tenant - dashboard totals leak between tenants",
+    "tools": [
+      "isolation-tester"
+    ]
+  },
+  "A-07": {
+    "evidence_files": [
+      "targets/tenant-api/src/main/java/com/ledgerlite/tenantapi/config/SecurityConfig.java",
+      "targets/tenant-api/src/main/java/com/ledgerlite/tenantapi/invite/InviteController.java"
+    ],
+    "method": "harness",
+    "title": "BFLA: viewer can call POST /users/invite (UI-only check)",
+    "tools": [
+      "isolation-tester"
+    ]
+  },
+  "A-08": {
+    "evidence_files": [
+      "targets/tenant-api/src/main/java/com/ledgerlite/tenantapi/config/SecurityConfig.java",
+      "targets/tenant-api/src/main/resources/application.yml"
+    ],
+    "method": "manual",
+    "title": "JWT audience not validated; long-lived tokens; no refresh rotation",
+    "tools": []
+  },
+  "A-09": {
+    "evidence_files": [
+      "targets/tenant-api/src/main/resources/application.yml"
+    ],
+    "method": "tool",
+    "title": "Signing secret and DB password in application.yml committed to repo",
+    "tools": [
+      "gitleaks"
+    ]
+  },
+  "A-10": {
+    "evidence_files": [
+      "targets/tenant-api/src/main/java/com/ledgerlite/tenantapi/auth/AuthController.java",
+      "targets/tenant-api/src/main/java/com/ledgerlite/tenantapi/export/ExportController.java"
+    ],
+    "method": "manual",
+    "title": "No rate limit on login and invoice export",
+    "tools": []
+  },
+  "A-11": {
+    "evidence_files": [
+      "targets/tenant-api/src/main/java/com/ledgerlite/tenantapi/invite/InviteController.java",
+      "targets/tenant-api/src/main/java/com/ledgerlite/tenantapi/logging/RequestLoggingFilter.java"
+    ],
+    "method": "manual",
+    "title": "Role changes and exports not audited; logs contain full tokens",
+    "tools": []
+  },
+  "A-12": {
+    "evidence_files": [
+      "targets/tenant-api/src/main/java/com/ledgerlite/tenantapi/invoice/InvoiceController.java",
+      "targets/tenant-api/src/main/java/com/ledgerlite/tenantapi/invoice/InvoiceSearchRepository.java"
+    ],
+    "method": "manual",
+    "title": "Invoice search sort parameter concatenated into SQL",
+    "tools": []
+  },
+  "A-13": {
+    "evidence_files": [
+      "targets/tenant-api/src/main/java/com/ledgerlite/tenantapi/webhook/WebhookController.java"
+    ],
+    "method": "manual",
+    "title": "Webhook 'test' endpoint fetches arbitrary URLs incl. metadata IP (SSRF)",
+    "tools": []
+  },
+  "B-01": {
+    "evidence_files": [
+      "targets/vibe-app/.env",
+      "targets/vibe-app/components/AdminUserList.tsx"
+    ],
+    "method": "tool",
+    "title": "SUPABASE_SERVICE_ROLE_KEY referenced in a client component (NEXT_PUBLIC_ prefix)",
+    "tools": [
+      "gitleaks",
+      "semgrep"
+    ]
+  },
+  "B-02": {
+    "evidence_files": [
+      "targets/vibe-app/.env",
+      "targets/vibe-app/lib/stripe.ts"
+    ],
+    "method": "tool",
+    "title": "Stripe secret key hardcoded in a server file and committed; .env not gitignored",
+    "tools": [
+      "gitleaks"
+    ]
+  },
+  "B-03": {
+    "evidence_files": [
+      "targets/vibe-app/supabase/migrations/20240101000002_rls_and_storage.sql"
+    ],
+    "method": "tool",
+    "title": "RLS disabled on bookings table",
+    "tools": [
+      "rls-checker"
+    ]
+  },
+  "B-04": {
+    "evidence_files": [
+      "targets/vibe-app/supabase/migrations/20240101000002_rls_and_storage.sql"
+    ],
+    "method": "tool",
+    "title": "RLS enabled on profiles but policy using(true)",
+    "tools": [
+      "rls-checker"
+    ]
+  },
+  "B-05": {
+    "evidence_files": [
+      "targets/vibe-app/app/api/bookings/[id]/cancel/route.ts"
+    ],
+    "method": "tool",
+    "title": "API route checks logged-in but not owns-record for cancel booking",
+    "tools": [
+      "semgrep"
+    ]
+  },
+  "B-06": {
+    "evidence_files": [
+      "targets/vibe-app/app/admin/page.tsx",
+      "targets/vibe-app/app/api/admin/grant-credits/route.ts"
+    ],
+    "method": "manual",
+    "title": "Admin page hidden in UI but server action not role-checked",
+    "tools": []
+  },
+  "B-07": {
+    "evidence_files": [
+      "targets/vibe-app/app/api/stripe/webhook/route.ts"
+    ],
+    "method": "manual",
+    "title": "Stripe webhook doesn't verify signature; parses JSON body directly",
+    "tools": []
+  },
+  "B-08": {
+    "evidence_files": [
+      "targets/vibe-app/app/api/stripe/webhook/route.ts"
+    ],
+    "method": "manual",
+    "title": "No idempotency - duplicate checkout.session.completed grants credits twice",
+    "tools": []
+  },
+  "B-09": {
+    "evidence_files": [
+      "targets/vibe-app/components/AvatarUpload.tsx",
+      "targets/vibe-app/supabase/migrations/20240101000002_rls_and_storage.sql"
+    ],
+    "method": "manual",
+    "title": "Avatar upload accepts any file type/size to a public bucket; SVG served inline",
+    "tools": []
+  },
+  "B-10": {
+    "evidence_files": [
+      "targets/vibe-app/app/api/bookings/route.ts"
+    ],
+    "method": "manual",
+    "title": "No server-side validation on booking form; negative quantity accepted",
+    "tools": []
+  },
+  "B-11": {
+    "evidence_files": [
+      "targets/vibe-app/app/studio/members/page.tsx",
+      "targets/vibe-app/components/MemberNameList.tsx"
+    ],
+    "method": "manual",
+    "title": "Server component passes full user rows (incl. email/phone) to client",
+    "tools": []
+  },
+  "B-12": {
+    "evidence_files": [
+      "targets/vibe-app/app/api/bookings/route.ts",
+      "targets/vibe-app/app/page.tsx",
+      "targets/vibe-app/app/studio/dashboard/page.tsx",
+      "targets/vibe-app/lib/pricing.ts"
+    ],
+    "method": "manual",
+    "title": "Supabase queries scattered in components; oversized page file; no tests; duplicated pricing logic",
+    "tools": []
+  }
+}

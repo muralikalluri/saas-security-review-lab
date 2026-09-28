@@ -1,0 +1,56 @@
+# Deliberately insecure for demonstration. Do not deploy.
+# Canonical finding list (id + a short title paraphrased from SPEC.md
+# sections 2 and 4 - see SPEC.md itself for the exact original wording).
+# The METHOD (tool / harness / manual) is NOT hand-typed here -
+# build_attribution.py derives it from actual results files (CLAUDE.md).
+findings:
+  - id: A-01
+    title: "BOLA: GET /invoices/{id} loads by id without tenant check"
+  - id: A-02
+    title: "BOLA: PUT /customers/{id} updates across tenants"
+  - id: A-03
+    title: "BOPLA: invoice JSON exposes tenantId/cost fields; mass assignment sets tenantId"
+  - id: A-04
+    title: "Tenant taken from X-Tenant-Id header instead of the token"
+  - id: A-05
+    title: "Report export job builds files in shared temp path keyed by sequential id"
+  - id: A-06
+    title: "Cache key missing tenant - dashboard totals leak between tenants"
+  - id: A-07
+    title: "BFLA: viewer can call POST /users/invite (UI-only check)"
+  - id: A-08
+    title: "JWT audience not validated; long-lived tokens; no refresh rotation"
+  - id: A-09
+    title: "Signing secret and DB password in application.yml committed to repo"
+  - id: A-10
+    title: "No rate limit on login and invoice export"
+  - id: A-11
+    title: "Role changes and exports not audited; logs contain full tokens"
+  - id: A-12
+    title: "Invoice search sort parameter concatenated into SQL"
+  - id: A-13
+    title: "Webhook 'test' endpoint fetches arbitrary URLs incl. metadata IP (SSRF)"
+  - id: B-01
+    title: "SUPABASE_SERVICE_ROLE_KEY referenced in a client component (NEXT_PUBLIC_ prefix)"
+  - id: B-02
+    title: "Stripe secret key hardcoded in a server file and committed; .env not gitignored"
+  - id: B-03
+    title: "RLS disabled on bookings table"
+  - id: B-04
+    title: "RLS enabled on profiles but policy using(true)"
+  - id: B-05
+    title: "API route checks logged-in but not owns-record for cancel booking"
+  - id: B-06
+    title: "Admin page hidden in UI but server action not role-checked"
+  - id: B-07
+    title: "Stripe webhook doesn't verify signature; parses JSON body directly"
+  - id: B-08
+    title: "No idempotency - duplicate checkout.session.completed grants credits twice"
+  - id: B-09
+    title: "Avatar upload accepts any file type/size to a public bucket; SVG served inline"
+  - id: B-10
+    title: "No server-side validation on booking form; negative quantity accepted"
+  - id: B-11
+    title: "Server component passes full user rows (incl. email/phone) to client"
+  - id: B-12
+    title: "Supabase queries scattered in components; oversized page file; no tests; duplicated pricing logic"

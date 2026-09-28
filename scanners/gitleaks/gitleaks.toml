@@ -1,0 +1,83 @@
+title = "saas-security-review-lab gitleaks config"
+
+# Deliberately insecure for demonstration. Do not deploy.
+#
+# Extends gitleaks' default ruleset (which already catches A-09/B-02 via its
+# built-in `jwt` rule against the Supabase service-role JWT - see the custom
+# rules below for what the defaults DON'T catch: Spring-style and bare
+# literal secrets, which have no recognizable format or entropy signature of
+# their own).
+[extend]
+useDefault = true
+
+# Global allowlist.
+[allowlist]
+description = "Known-public Supabase local CLI demo ANON key (not a secret); and this scanner's own committed output, which necessarily quotes the same already-fake secrets found elsewhere in the repo - excluding it stops gitleaks finding itself once results are committed."
+regexes = [
+  # The Supabase local CLI ANON key is public by design - it ships to every
+  # browser in every Supabase project on earth, local or hosted, and is
+  # meant to. Flagging it as "leaked" is a false positive, not a finding.
+  # Matched on the anon-role JWT PAYLOAD segment specifically (decodes to
+  # {"iss":"supabase-demo","role":"anon",...}), so this can never also match
+  # the SERVICE_ROLE key's payload (role":"service_role") - the
+  # service-role key stays a real, reportable finding (B-01/B-02).
+  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24i[A-Za-z0-9_\-\.]*''',
+]
+paths = [
+  '''scanners/results/.*''',
+]
+
+# A-09 (SPEC.md A-09): Spring's `${VAR:literal}` syntax means the literal
+# AFTER the colon is the value actually used whenever the env var isn't
+# set - i.e. it ships as the real default. Keys on the property-name shape
+# ("password"/"secret") + Spring's own placeholder-with-default syntax, not
+# on any particular literal value, so it would catch a real leaked
+# credential in this exact shape just as well as the lab's fake one.
+#
+# Deliberately distinguishes Spring's `${VAR:default}` (bare colon) from
+# Docker Compose / shell's `${VAR:-default}` (colon-DASH) - the latter is
+# how docker-compose.yml wires this repo's own already-documented,
+# intentionally-fake local-dev passwords through from .env.example, and is
+# not the A-09 finding. Go's RE2 engine has no lookahead, so this is done
+# with a negated-first-character class instead of `(?!-)`.
+[[rules]]
+id = "spring-default-secret-fallback"
+description = "Spring `${VAR:literal}` default value on a password/secret-named property ships that literal as the real credential whenever the env var is unset"
+regex = '''(?i)[a-z0-9_.-]*(password|secret)[a-z0-9_.-]*\s*:\s*\$\{[A-Za-z0-9_]+:([^-}\s][^}\s]{3,})\}'''
+secretGroup = 2
+tags = ["credentials", "spring", "custom", "A-09"]
+
+# A bare string literal (no ${VAR} indirection at all) assigned directly to
+# a key whose NAME says "secret" - works for YAML (`key: value`) and
+# .env/properties (`KEY=value`) alike. Fires on both A-09's
+# legacy-jwt-signing-secret (application.yml) and B-02's
+# STRIPE_WEBHOOK_SECRET (vibe-app/.env) - tagged with both; the attribution
+# script (scanners/attribution/build_attribution.py) resolves each
+# individual HIT to whichever of those two findings actually owns that
+# file, rather than crediting every tagged finding for every hit of the
+# rule. Keys on the key-name + literal-assignment shape, never on the
+# "DO_NOT_USE" marker text lab secrets happen to carry, so it isn't
+# circular: it would fire identically on a real secret pasted into the
+# same shape.
+#
+# `(?im)` is required, not just `(?i)`: without multiline mode, `$` only
+# anchors to the end of the whole scanned chunk, not the end of each line -
+# an earlier version of this rule only ever matched whichever secret
+# happened to sit last in a hunk, silently missing every other line.
+[[rules]]
+id = "secret-named-key-literal-value"
+description = "A key whose name contains 'secret' is assigned a bare string literal instead of an environment-variable reference"
+regex = '''(?im)^\s*[a-z0-9_.-]*secret[a-z0-9_.-]*\s*[:=]\s*['"]?([A-Za-z0-9_\-]{10,})['"]?\s*$'''
+secretGroup = 1
+tags = ["credentials", "custom", "A-09", "B-02"]
+
+# The same idea as above, but for a JS/TS `const`/`let`/`var` declaration
+# instead of a YAML/.env key - catches lib/stripe.ts's hardcoded
+# STRIPE_SECRET_KEY (B-02), which the key:value/key=value rule above
+# structurally cannot match.
+[[rules]]
+id = "secret-named-const-literal-value"
+description = "A JS/TS const/let/var whose name contains 'secret' is assigned a bare string literal instead of reading it from an environment variable"
+regex = '''(?im)^\s*(?:const|let|var)\s+[A-Za-z0-9_]*secret[A-Za-z0-9_]*\s*=\s*["']([A-Za-z0-9_\-]{10,})["']'''
+secretGroup = 1
+tags = ["credentials", "custom", "B-02"]
