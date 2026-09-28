@@ -1,15 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { estimateCreditCost } from "@/lib/pricing";
+import { estimateCreditCostForDisplay } from "@/lib/pricing";
 
 export default function BookingForm({ classId, creditCostPerSeat }: { classId: string; creditCostPerSeat: number }) {
   const [quantity, setQuantity] = useState(1);
   const [result, setResult] = useState<string | null>(null);
 
-  // Display-only estimate (see lib/pricing.ts's B-12 comment) - this is
-  // NOT what the server actually charges; nothing keeps them in sync.
-  const estimatedCost = estimateCreditCost(creditCostPerSeat, quantity);
+  // Display-only estimate (see lib/pricing.ts) - the server independently
+  // validates and charges via calculateCreditCost; this is just what's
+  // shown before submitting.
+  const estimatedCost = estimateCreditCostForDisplay(creditCostPerSeat, quantity);
 
   async function handleBook() {
     setResult(null);

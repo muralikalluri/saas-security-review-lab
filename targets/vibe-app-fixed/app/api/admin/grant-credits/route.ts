@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isPositiveIntegerWithinBound } from "@/lib/validation";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_GRANT_AMOUNT = 100_000;
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
   if (typeof targetUserId !== "string" || !UUID_RE.test(targetUserId)) {
     return NextResponse.json({ error: "invalid targetUserId" }, { status: 400 });
   }
-  if (!Number.isInteger(amount) || amount <= 0 || amount > MAX_GRANT_AMOUNT) {
+  if (!isPositiveIntegerWithinBound(amount, MAX_GRANT_AMOUNT)) {
     return NextResponse.json({ error: `amount must be a positive integer up to ${MAX_GRANT_AMOUNT}` }, { status: 400 });
   }
 

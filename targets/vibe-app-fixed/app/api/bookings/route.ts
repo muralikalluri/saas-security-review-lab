@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { calculateCreditCost } from "@/lib/pricing";
+import { isPositiveIntegerWithinBound } from "@/lib/validation";
 
 const MAX_QUANTITY = 20;
 
@@ -12,6 +14,10 @@ const MAX_QUANTITY = 20;
  * atomic statement that also re-checks capacity and balance server-side -
  * the baseline's separate select-then-update-then-insert sequence is gone,
  * along with the negative-quantity/negative-cost bug that came from it.
+ *
+ * B-12 (fixed, SPEC.md B-12): the cost formula itself now comes from
+ * lib/pricing.ts - the one place it's defined - instead of being pasted
+ * inline here a second time.
  */
 export async function POST(request: Request) {
   const user = await getSessionUser();
@@ -26,7 +32,7 @@ export async function POST(request: Request) {
   if (typeof classId !== "string") {
     return NextResponse.json({ error: "invalid classId" }, { status: 400 });
   }
-  if (!Number.isInteger(quantity) || quantity <= 0 || quantity > MAX_QUANTITY) {
+  if (!isPositiveIntegerWithinBound(quantity, MAX_QUANTITY)) {
     return NextResponse.json({ error: `quantity must be a positive integer up to ${MAX_QUANTITY}` }, { status: 400 });
   }
 
@@ -36,7 +42,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "class not found" }, { status: 404 });
   }
 
-  const creditCost = classRow.credit_cost * quantity;
+  const creditCost = calculateCreditCost(classRow.credit_cost, quantity);
 
   const { data: booking, error } = await supabaseAdmin.rpc("book_class", {
     p_user_id: user.id,
