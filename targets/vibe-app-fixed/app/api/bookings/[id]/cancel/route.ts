@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
-import { createClient, getSessionUser } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * B-05 (seeded flaw, SPEC.md B-05): checks that the caller is logged in,
- * but never checks that the booking being cancelled belongs to them - any
- * authenticated user can cancel ANY booking by id. The service-role-free
- * `createClient()` used here would normally be stopped by RLS, but
- * bookings has none (B-03), so this reaches the database unguarded twice
- * over.
+ * B-05 (fixed, SPEC.md B-05): the update now filters on
+ * `.eq("id", id).eq("user_id", user.id).eq("status", "confirmed")` - a
+ * booking that belongs to someone else, or is already cancelled, or
+ * doesn't exist, all get the SAME 404, so the response can't be used to
+ * probe which case it was. The service-role client is used because B-03's
+ * fix revoked UPDATE on bookings from `authenticated` entirely - this
+ * route is now the only place a booking can be cancelled from, and the
+ * ownership check above is what makes that safe.
  */
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   const user = await getSessionUser();
@@ -15,16 +20,22 @@ export async function POST(request: Request, { params }: { params: { id: string 
     return NextResponse.json({ error: "not authenticated" }, { status: 401 });
   }
 
-  const supabase = createClient();
+  if (!UUID_RE.test(params.id)) {
+    return NextResponse.json({ error: "not found" }, { status: 404 });
+  }
+
+  const supabase = createAdminClient();
   const { data: booking, error } = await supabase
     .from("bookings")
     .update({ status: "cancelled" })
     .eq("id", params.id)
+    .eq("user_id", user.id)
+    .eq("status", "confirmed")
     .select()
     .single();
 
   if (error || !booking) {
-    return NextResponse.json({ error: error?.message ?? "not found" }, { status: 404 });
+    return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 
   return NextResponse.json({ booking });
