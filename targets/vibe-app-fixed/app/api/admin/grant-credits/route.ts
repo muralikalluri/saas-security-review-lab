@@ -1,42 +1,43 @@
 import { NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth/require-admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_GRANT_AMOUNT = 100_000;
+
 /**
- * B-06 (seeded flaw, SPEC.md B-06): the /admin page's UI only shows the
- * "grant credits" form to users whose profile role is 'admin' - but this
- * route, which actually performs the action, never re-checks that role
- * server-side. It writes credit_balance with the service-role client (the
- * legitimate way for a trusted server route to update a column a normal
- * user's own session cannot), so the only thing standing between any
- * logged-in user and unlimited credits for any target is the missing
- * `if (caller.role !== 'admin')` check. Any authenticated user who calls
- * this endpoint directly (bypassing the UI entirely) can grant themselves
- * - or anyone - credits.
+ * B-06 (fixed, SPEC.md B-06): requireAdmin() re-checks the caller's role
+ * server-side and returns 403 BEFORE looking up the target user, so a
+ * non-admin can't use this route's response to test whether a user id
+ * exists. targetUserId/amount are validated, and the balance write is one
+ * atomic SQL statement inside grant_credits() (see the migration) instead
+ * of the baseline's read-balance-then-write-balance race.
  */
 export async function POST(request: Request) {
-  const user = await getSessionUser();
-  if (!user) {
-    return NextResponse.json({ error: "not authenticated" }, { status: 401 });
+  const { isAdmin } = await requireAdmin();
+  if (!isAdmin) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const { targetUserId, amount } = (await request.json()) as { targetUserId: string; amount: number };
+  const body = await request.json().catch(() => null);
+  const targetUserId = body?.targetUserId;
+  const amount = body?.amount;
+
+  if (typeof targetUserId !== "string" || !UUID_RE.test(targetUserId)) {
+    return NextResponse.json({ error: "invalid targetUserId" }, { status: 400 });
+  }
+  if (!Number.isInteger(amount) || amount <= 0 || amount > MAX_GRANT_AMOUNT) {
+    return NextResponse.json({ error: `amount must be a positive integer up to ${MAX_GRANT_AMOUNT}` }, { status: 400 });
+  }
 
   const supabase = createAdminClient();
-  const { data: target } = await supabase.from("profiles").select("credit_balance").eq("id", targetUserId).single();
-  if (!target) {
-    return NextResponse.json({ error: "target user not found" }, { status: 404 });
-  }
+  const { data: updated, error } = await supabase.rpc("grant_credits", {
+    p_target_user_id: targetUserId,
+    p_amount: amount,
+  });
 
-  const { data: updated, error } = await supabase
-    .from("profiles")
-    .update({ credit_balance: target.credit_balance + amount })
-    .eq("id", targetUserId)
-    .select()
-    .single();
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error || !updated) {
+    return NextResponse.json({ error: error?.message ?? "target user not found" }, { status: 404 });
   }
 
   return NextResponse.json({ profile: updated });

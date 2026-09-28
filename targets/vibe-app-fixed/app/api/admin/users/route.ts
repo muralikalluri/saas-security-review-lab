@@ -1,23 +1,17 @@
 import { NextResponse } from "next/server";
-import { createClient, getSessionUser } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth/require-admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
- * B-01 (fixed, SPEC.md B-01): the user-listing query now runs here, on the
+ * B-01 (fixed, SPEC.md B-01): the user-listing query runs here, on the
  * server, using the service-role client from lib/supabase/admin.ts - never
  * in a "use client" component, and never from a NEXT_PUBLIC_-prefixed var.
- * The role check below is inline for now; B-06's fix extracts this same
- * check into a shared requireAdmin() helper reused by every admin route.
+ * B-06 (fixed, SPEC.md B-06): the role check uses the same requireAdmin()
+ * helper every admin route/page shares.
  */
 export async function GET() {
-  const user = await getSessionUser();
-  if (!user) {
-    return NextResponse.json({ error: "not authenticated" }, { status: 401 });
-  }
-
-  const supabase = createClient();
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (profile?.role !== "admin") {
+  const { isAdmin } = await requireAdmin();
+  if (!isAdmin) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 

@@ -1,24 +1,21 @@
-import { createClient, getSessionUser } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth/require-admin";
 import AdminUserList from "@/components/AdminUserList";
 import GrantCreditsForm from "@/components/GrantCreditsForm";
 
 /**
- * B-06 (seeded flaw, SPEC.md B-06): this page hides the admin tools behind
- * a role check - but that check is UI-only. The server action it renders
- * a form for (POST /api/admin/grant-credits) does not re-check the role
- * itself, so any authenticated user who calls that route directly (not
- * through this page) can use it regardless of what's rendered here.
+ * B-06 (fixed, SPEC.md B-06): this page's own check is still UI-only (it
+ * just decides what to render) - what actually matters is that
+ * POST /api/admin/grant-credits and GET /api/admin/users independently
+ * re-check the caller's role server-side via the same requireAdmin()
+ * helper, so calling those routes directly (bypassing this page entirely)
+ * is no longer sufficient to use them.
  */
 export default async function AdminPage() {
-  const user = await getSessionUser();
+  const { user, isAdmin } = await requireAdmin();
   if (!user) {
     return <main>Please sign in.</main>;
   }
-
-  const supabase = createClient();
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-
-  if (profile?.role !== "admin") {
+  if (!isAdmin) {
     return <main>You do not have access to this page.</main>;
   }
 

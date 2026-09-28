@@ -1,5 +1,6 @@
-import { createClient, getSessionUser } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/auth/require-admin";
 
 /**
  * B-12 (seeded flaw, SPEC.md B-12): "Structure / maintainability" - this is
@@ -24,14 +25,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * missed in the other two.
  */
 export default async function StudioDashboardPage() {
-  const user = await getSessionUser();
+  const { user, isAdmin } = await requireAdmin();
   if (!user) {
     return <main>Please sign in.</main>;
   }
-
-  const supabaseRole = createClient();
-  const { data: profile } = await supabaseRole.from("profiles").select("role").eq("id", user.id).single();
-  if (profile?.role !== "admin") {
+  if (!isAdmin) {
     return <main>You do not have access to this page.</main>;
   }
 
