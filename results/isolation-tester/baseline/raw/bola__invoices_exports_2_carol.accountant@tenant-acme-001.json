@@ -1,0 +1,14 @@
+{
+  "probe_id": "bola:/invoices/exports/2:carol.accountant@tenant-acme-001",
+  "actor": "carol.accountant@tenant-acme-001",
+  "request": {
+    "method": "GET",
+    "path": "/invoices/exports/2",
+    "headers": {},
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "body": "id,customer_id,amount,internal_cost,status\n3,3,5600.00,2200.00,sent\n4,4,900.00,300.00,draft\n7,3,10.00,1.00,draft\n8,3,10.00,1.00,draft\n"
+  }
+}

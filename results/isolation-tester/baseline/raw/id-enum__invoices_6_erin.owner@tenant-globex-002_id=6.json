@@ -13,9 +13,9 @@
       "id": 6,
       "tenantId": "tenant-acme-001",
       "customerId": 1,
-      "amount": 99999.0,
+      "amount": 10.0,
       "internalCost": 1.0,
-      "status": "sent"
+      "status": "draft"
     }
   }
 }

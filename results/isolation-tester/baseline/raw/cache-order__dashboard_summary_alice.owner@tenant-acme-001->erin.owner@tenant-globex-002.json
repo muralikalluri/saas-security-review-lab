@@ -10,8 +10,8 @@
   "response": {
     "status": 200,
     "body": {
-      "totalAmount": 104772.0,
-      "source": "cache"
+      "source": "cache",
+      "totalAmount": 4620.0
     }
   }
 }

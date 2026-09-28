@@ -4,7 +4,7 @@
 
 - Run: `baseline`
 - Target: `http://localhost:8183`
-- Started: 2026-09-28T04:33:26.519003+00:00
+- Started: 2026-09-28T15:41:09.945372+00:00
 - Preflight OK: True
 - Positive controls OK: True
 - Expected leaked findings: ['A-01', 'A-02', 'A-03', 'A-04', 'A-05', 'A-06', 'A-07']
@@ -41,8 +41,8 @@ This file, its sibling `isolation-matrix.json`, and the per-probe evidence in `r
 | (control) | positive-control | `GET /customers/3` | frank.viewer@tenant-globex-002 | PASS (owner allowed) | status 200 | `raw/control_GET__customers_3_frank.viewer@tenant-globex-002.json` |
 | (control) | positive-control | `GET /invoices` | frank.viewer@tenant-globex-002 | PASS (owner allowed) | status 200 | `raw/control_GET__invoices_frank.viewer@tenant-globex-002.json` |
 | (control) | positive-control | `GET /customers` | frank.viewer@tenant-globex-002 | PASS (owner allowed) | status 200 | `raw/control_GET__customers_frank.viewer@tenant-globex-002.json` |
-| A-06 | cache-order | `GET /dashboard/summary` | erin.owner@tenant-globex-002 | **LEAK** | erin.owner@tenant-globex-002 saw a cached total of 104772.0 (tenant-agnostic cache key) instead of their own ground truth 6687.0 (populated by alice.owner@tenant-acme-001's request) | `raw/cache-order__dashboard_summary_alice.owner@tenant-acme-001->erin.owner@tenant-globex-002.json` |
-| A-04 | header-spoof | `GET /dashboard/summary` | erin.owner@tenant-globex-002 | **LEAK** | erin.owner@tenant-globex-002 spoofed X-Tenant-Id=tenant-acme-001 and received tenant tenant-acme-001's total (104772.0) instead of their own | `raw/header-spoof__dashboard_summary_erin.owner@tenant-globex-002_spoof=tenant-acme-001.json` |
+| A-06 | cache-order | `GET /dashboard/summary` | erin.owner@tenant-globex-002 | **LEAK** | erin.owner@tenant-globex-002 saw a cached total of 4620.0 (tenant-agnostic cache key) instead of their own ground truth 6520.0 (populated by alice.owner@tenant-acme-001's request) | `raw/cache-order__dashboard_summary_alice.owner@tenant-acme-001->erin.owner@tenant-globex-002.json` |
+| A-04 | header-spoof | `GET /dashboard/summary` | erin.owner@tenant-globex-002 | **LEAK** | erin.owner@tenant-globex-002 spoofed X-Tenant-Id=tenant-acme-001 and received tenant tenant-acme-001's total (4620.0) instead of their own | `raw/header-spoof__dashboard_summary_erin.owner@tenant-globex-002_spoof=tenant-acme-001.json` |
 | A-01 | bola | `get /invoices/1` | erin.owner@tenant-globex-002 | **LEAK** | status 200 on a foreign resource | `raw/bola__invoices_1_erin.owner@tenant-globex-002.json` |
 | A-01 | bola | `get /invoices/1` | frank.viewer@tenant-globex-002 | **LEAK** | status 200 on a foreign resource | `raw/bola__invoices_1_frank.viewer@tenant-globex-002.json` |
 | A-01 | bola | `get /invoices/2` | erin.owner@tenant-globex-002 | **LEAK** | status 200 on a foreign resource | `raw/bola__invoices_2_erin.owner@tenant-globex-002.json` |
@@ -67,102 +67,32 @@ This file, its sibling `isolation-matrix.json`, and the per-probe evidence in `r
 | (control) | bola | `get /customers/4` | bob.admin@tenant-acme-001 | PASS (denied) | status 404 | `raw/bola__customers_4_bob.admin@tenant-acme-001.json` |
 | (control) | bola | `get /customers/4` | carol.accountant@tenant-acme-001 | PASS (denied) | status 404 | `raw/bola__customers_4_carol.accountant@tenant-acme-001.json` |
 | (control) | bola | `get /customers/4` | dave.viewer@tenant-acme-001 | PASS (denied) | status 404 | `raw/bola__customers_4_dave.viewer@tenant-acme-001.json` |
-| A-05 | bola | `GET /invoices/exports/35` | erin.owner@tenant-globex-002 | **LEAK** | status 200 on a foreign resource | `raw/bola__invoices_exports_35_erin.owner@tenant-globex-002.json` |
-| A-05 | bola | `GET /invoices/exports/35` | frank.viewer@tenant-globex-002 | **LEAK** | status 200 on a foreign resource | `raw/bola__invoices_exports_35_frank.viewer@tenant-globex-002.json` |
-| A-05 | bola | `GET /invoices/exports/36` | alice.owner@tenant-acme-001 | **LEAK** | status 200 on a foreign resource | `raw/bola__invoices_exports_36_alice.owner@tenant-acme-001.json` |
-| A-05 | bola | `GET /invoices/exports/36` | bob.admin@tenant-acme-001 | **LEAK** | status 200 on a foreign resource | `raw/bola__invoices_exports_36_bob.admin@tenant-acme-001.json` |
-| A-05 | bola | `GET /invoices/exports/36` | carol.accountant@tenant-acme-001 | **LEAK** | status 200 on a foreign resource | `raw/bola__invoices_exports_36_carol.accountant@tenant-acme-001.json` |
-| A-05 | bola | `GET /invoices/exports/36` | dave.viewer@tenant-acme-001 | **LEAK** | status 200 on a foreign resource | `raw/bola__invoices_exports_36_dave.viewer@tenant-acme-001.json` |
+| A-05 | bola | `GET /invoices/exports/1` | erin.owner@tenant-globex-002 | **LEAK** | status 200 on a foreign resource | `raw/bola__invoices_exports_1_erin.owner@tenant-globex-002.json` |
+| A-05 | bola | `GET /invoices/exports/1` | frank.viewer@tenant-globex-002 | **LEAK** | status 200 on a foreign resource | `raw/bola__invoices_exports_1_frank.viewer@tenant-globex-002.json` |
+| A-05 | bola | `GET /invoices/exports/2` | alice.owner@tenant-acme-001 | **LEAK** | status 200 on a foreign resource | `raw/bola__invoices_exports_2_alice.owner@tenant-acme-001.json` |
+| A-05 | bola | `GET /invoices/exports/2` | bob.admin@tenant-acme-001 | **LEAK** | status 200 on a foreign resource | `raw/bola__invoices_exports_2_bob.admin@tenant-acme-001.json` |
+| A-05 | bola | `GET /invoices/exports/2` | carol.accountant@tenant-acme-001 | **LEAK** | status 200 on a foreign resource | `raw/bola__invoices_exports_2_carol.accountant@tenant-acme-001.json` |
+| A-05 | bola | `GET /invoices/exports/2` | dave.viewer@tenant-acme-001 | **LEAK** | status 200 on a foreign resource | `raw/bola__invoices_exports_2_dave.viewer@tenant-acme-001.json` |
 | A-01 | id-enum | `GET /invoices/1` | erin.owner@tenant-globex-002 | **LEAK** | id=1 classified as 'leak' (status 200) | `raw/id-enum__invoices_1_erin.owner@tenant-globex-002_id=1.json` |
 | A-01 | id-enum | `GET /invoices/2` | erin.owner@tenant-globex-002 | **LEAK** | id=2 classified as 'leak' (status 200) | `raw/id-enum__invoices_2_erin.owner@tenant-globex-002_id=2.json` |
 | A-01 | id-enum | `GET /invoices/3` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=3 classified as 'own' (status 200) | `raw/id-enum__invoices_3_erin.owner@tenant-globex-002_id=3.json` |
 | A-01 | id-enum | `GET /invoices/4` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=4 classified as 'own' (status 200) | `raw/id-enum__invoices_4_erin.owner@tenant-globex-002_id=4.json` |
-| A-01 | id-enum | `GET /invoices/5` | erin.owner@tenant-globex-002 | PASS (denied) | id=5 classified as 'denied' (status 404) | `raw/id-enum__invoices_5_erin.owner@tenant-globex-002_id=5.json` |
+| A-01 | id-enum | `GET /invoices/5` | erin.owner@tenant-globex-002 | **LEAK** | id=5 classified as 'leak' (status 200) | `raw/id-enum__invoices_5_erin.owner@tenant-globex-002_id=5.json` |
 | A-01 | id-enum | `GET /invoices/6` | erin.owner@tenant-globex-002 | **LEAK** | id=6 classified as 'leak' (status 200) | `raw/id-enum__invoices_6_erin.owner@tenant-globex-002_id=6.json` |
-| A-01 | id-enum | `GET /invoices/7` | erin.owner@tenant-globex-002 | **LEAK** | id=7 classified as 'leak' (status 200) | `raw/id-enum__invoices_7_erin.owner@tenant-globex-002_id=7.json` |
-| A-01 | id-enum | `GET /invoices/8` | erin.owner@tenant-globex-002 | **LEAK** | id=8 classified as 'leak' (status 200) | `raw/id-enum__invoices_8_erin.owner@tenant-globex-002_id=8.json` |
-| A-01 | id-enum | `GET /invoices/9` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=9 classified as 'own' (status 200) | `raw/id-enum__invoices_9_erin.owner@tenant-globex-002_id=9.json` |
-| A-01 | id-enum | `GET /invoices/10` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=10 classified as 'own' (status 200) | `raw/id-enum__invoices_10_erin.owner@tenant-globex-002_id=10.json` |
-| A-01 | id-enum | `GET /invoices/11` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=11 classified as 'own' (status 200) | `raw/id-enum__invoices_11_erin.owner@tenant-globex-002_id=11.json` |
-| A-01 | id-enum | `GET /invoices/12` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=12 classified as 'own' (status 200) | `raw/id-enum__invoices_12_erin.owner@tenant-globex-002_id=12.json` |
-| A-01 | id-enum | `GET /invoices/13` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=13 classified as 'own' (status 200) | `raw/id-enum__invoices_13_erin.owner@tenant-globex-002_id=13.json` |
-| A-01 | id-enum | `GET /invoices/14` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=14 classified as 'own' (status 200) | `raw/id-enum__invoices_14_erin.owner@tenant-globex-002_id=14.json` |
-| A-01 | id-enum | `GET /invoices/15` | erin.owner@tenant-globex-002 | **LEAK** | id=15 classified as 'leak' (status 200) | `raw/id-enum__invoices_15_erin.owner@tenant-globex-002_id=15.json` |
-| A-01 | id-enum | `GET /invoices/16` | erin.owner@tenant-globex-002 | **LEAK** | id=16 classified as 'leak' (status 200) | `raw/id-enum__invoices_16_erin.owner@tenant-globex-002_id=16.json` |
-| A-01 | id-enum | `GET /invoices/17` | erin.owner@tenant-globex-002 | **LEAK** | id=17 classified as 'leak' (status 200) | `raw/id-enum__invoices_17_erin.owner@tenant-globex-002_id=17.json` |
-| A-01 | id-enum | `GET /invoices/18` | erin.owner@tenant-globex-002 | **LEAK** | id=18 classified as 'leak' (status 200) | `raw/id-enum__invoices_18_erin.owner@tenant-globex-002_id=18.json` |
-| A-01 | id-enum | `GET /invoices/19` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=19 classified as 'own' (status 200) | `raw/id-enum__invoices_19_erin.owner@tenant-globex-002_id=19.json` |
-| A-01 | id-enum | `GET /invoices/20` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=20 classified as 'own' (status 200) | `raw/id-enum__invoices_20_erin.owner@tenant-globex-002_id=20.json` |
-| A-01 | id-enum | `GET /invoices/21` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=21 classified as 'own' (status 200) | `raw/id-enum__invoices_21_erin.owner@tenant-globex-002_id=21.json` |
-| A-01 | id-enum | `GET /invoices/22` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=22 classified as 'own' (status 200) | `raw/id-enum__invoices_22_erin.owner@tenant-globex-002_id=22.json` |
-| A-01 | id-enum | `GET /invoices/23` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=23 classified as 'own' (status 200) | `raw/id-enum__invoices_23_erin.owner@tenant-globex-002_id=23.json` |
-| A-01 | id-enum | `GET /invoices/24` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=24 classified as 'own' (status 200) | `raw/id-enum__invoices_24_erin.owner@tenant-globex-002_id=24.json` |
-| A-01 | id-enum | `GET /invoices/25` | erin.owner@tenant-globex-002 | **LEAK** | id=25 classified as 'leak' (status 200) | `raw/id-enum__invoices_25_erin.owner@tenant-globex-002_id=25.json` |
-| A-01 | id-enum | `GET /invoices/26` | erin.owner@tenant-globex-002 | **LEAK** | id=26 classified as 'leak' (status 200) | `raw/id-enum__invoices_26_erin.owner@tenant-globex-002_id=26.json` |
-| A-01 | id-enum | `GET /invoices/27` | erin.owner@tenant-globex-002 | **LEAK** | id=27 classified as 'leak' (status 200) | `raw/id-enum__invoices_27_erin.owner@tenant-globex-002_id=27.json` |
-| A-01 | id-enum | `GET /invoices/28` | erin.owner@tenant-globex-002 | **LEAK** | id=28 classified as 'leak' (status 200) | `raw/id-enum__invoices_28_erin.owner@tenant-globex-002_id=28.json` |
-| A-01 | id-enum | `GET /invoices/29` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=29 classified as 'own' (status 200) | `raw/id-enum__invoices_29_erin.owner@tenant-globex-002_id=29.json` |
-| A-01 | id-enum | `GET /invoices/30` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=30 classified as 'own' (status 200) | `raw/id-enum__invoices_30_erin.owner@tenant-globex-002_id=30.json` |
-| A-01 | id-enum | `GET /invoices/31` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=31 classified as 'own' (status 200) | `raw/id-enum__invoices_31_erin.owner@tenant-globex-002_id=31.json` |
-| A-01 | id-enum | `GET /invoices/32` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=32 classified as 'own' (status 200) | `raw/id-enum__invoices_32_erin.owner@tenant-globex-002_id=32.json` |
-| A-01 | id-enum | `GET /invoices/33` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=33 classified as 'own' (status 200) | `raw/id-enum__invoices_33_erin.owner@tenant-globex-002_id=33.json` |
-| A-01 | id-enum | `GET /invoices/34` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=34 classified as 'own' (status 200) | `raw/id-enum__invoices_34_erin.owner@tenant-globex-002_id=34.json` |
-| A-01 | id-enum | `GET /invoices/35` | erin.owner@tenant-globex-002 | **LEAK** | id=35 classified as 'leak' (status 200) | `raw/id-enum__invoices_35_erin.owner@tenant-globex-002_id=35.json` |
-| A-01 | id-enum | `GET /invoices/36` | erin.owner@tenant-globex-002 | **LEAK** | id=36 classified as 'leak' (status 200) | `raw/id-enum__invoices_36_erin.owner@tenant-globex-002_id=36.json` |
-| A-01 | id-enum | `GET /invoices/37` | erin.owner@tenant-globex-002 | **LEAK** | id=37 classified as 'leak' (status 200) | `raw/id-enum__invoices_37_erin.owner@tenant-globex-002_id=37.json` |
-| A-01 | id-enum | `GET /invoices/38` | erin.owner@tenant-globex-002 | **LEAK** | id=38 classified as 'leak' (status 200) | `raw/id-enum__invoices_38_erin.owner@tenant-globex-002_id=38.json` |
-| A-01 | id-enum | `GET /invoices/39` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=39 classified as 'own' (status 200) | `raw/id-enum__invoices_39_erin.owner@tenant-globex-002_id=39.json` |
-| A-01 | id-enum | `GET /invoices/40` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=40 classified as 'own' (status 200) | `raw/id-enum__invoices_40_erin.owner@tenant-globex-002_id=40.json` |
-| A-01 | id-enum | `GET /invoices/41` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=41 classified as 'own' (status 200) | `raw/id-enum__invoices_41_erin.owner@tenant-globex-002_id=41.json` |
-| A-01 | id-enum | `GET /invoices/42` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=42 classified as 'own' (status 200) | `raw/id-enum__invoices_42_erin.owner@tenant-globex-002_id=42.json` |
-| A-01 | id-enum | `GET /invoices/43` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=43 classified as 'own' (status 200) | `raw/id-enum__invoices_43_erin.owner@tenant-globex-002_id=43.json` |
-| A-01 | id-enum | `GET /invoices/44` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=44 classified as 'own' (status 200) | `raw/id-enum__invoices_44_erin.owner@tenant-globex-002_id=44.json` |
-| A-01 | id-enum | `GET /invoices/45` | erin.owner@tenant-globex-002 | **LEAK** | id=45 classified as 'leak' (status 200) | `raw/id-enum__invoices_45_erin.owner@tenant-globex-002_id=45.json` |
-| A-01 | id-enum | `GET /invoices/46` | erin.owner@tenant-globex-002 | **LEAK** | id=46 classified as 'leak' (status 200) | `raw/id-enum__invoices_46_erin.owner@tenant-globex-002_id=46.json` |
-| A-01 | id-enum | `GET /invoices/47` | erin.owner@tenant-globex-002 | **LEAK** | id=47 classified as 'leak' (status 200) | `raw/id-enum__invoices_47_erin.owner@tenant-globex-002_id=47.json` |
-| A-01 | id-enum | `GET /invoices/48` | erin.owner@tenant-globex-002 | **LEAK** | id=48 classified as 'leak' (status 200) | `raw/id-enum__invoices_48_erin.owner@tenant-globex-002_id=48.json` |
-| A-01 | id-enum | `GET /invoices/49` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=49 classified as 'own' (status 200) | `raw/id-enum__invoices_49_erin.owner@tenant-globex-002_id=49.json` |
-| A-01 | id-enum | `GET /invoices/50` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=50 classified as 'own' (status 200) | `raw/id-enum__invoices_50_erin.owner@tenant-globex-002_id=50.json` |
-| A-01 | id-enum | `GET /invoices/51` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=51 classified as 'own' (status 200) | `raw/id-enum__invoices_51_erin.owner@tenant-globex-002_id=51.json` |
-| A-01 | id-enum | `GET /invoices/52` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=52 classified as 'own' (status 200) | `raw/id-enum__invoices_52_erin.owner@tenant-globex-002_id=52.json` |
-| A-01 | id-enum | `GET /invoices/53` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=53 classified as 'own' (status 200) | `raw/id-enum__invoices_53_erin.owner@tenant-globex-002_id=53.json` |
-| A-01 | id-enum | `GET /invoices/54` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=54 classified as 'own' (status 200) | `raw/id-enum__invoices_54_erin.owner@tenant-globex-002_id=54.json` |
-| A-01 | id-enum | `GET /invoices/55` | erin.owner@tenant-globex-002 | **LEAK** | id=55 classified as 'leak' (status 200) | `raw/id-enum__invoices_55_erin.owner@tenant-globex-002_id=55.json` |
-| A-01 | id-enum | `GET /invoices/56` | erin.owner@tenant-globex-002 | **LEAK** | id=56 classified as 'leak' (status 200) | `raw/id-enum__invoices_56_erin.owner@tenant-globex-002_id=56.json` |
-| A-01 | id-enum | `GET /invoices/57` | erin.owner@tenant-globex-002 | **LEAK** | id=57 classified as 'leak' (status 200) | `raw/id-enum__invoices_57_erin.owner@tenant-globex-002_id=57.json` |
-| A-01 | id-enum | `GET /invoices/58` | erin.owner@tenant-globex-002 | **LEAK** | id=58 classified as 'leak' (status 200) | `raw/id-enum__invoices_58_erin.owner@tenant-globex-002_id=58.json` |
-| A-01 | id-enum | `GET /invoices/59` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=59 classified as 'own' (status 200) | `raw/id-enum__invoices_59_erin.owner@tenant-globex-002_id=59.json` |
-| A-01 | id-enum | `GET /invoices/60` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=60 classified as 'own' (status 200) | `raw/id-enum__invoices_60_erin.owner@tenant-globex-002_id=60.json` |
-| A-01 | id-enum | `GET /invoices/61` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=61 classified as 'own' (status 200) | `raw/id-enum__invoices_61_erin.owner@tenant-globex-002_id=61.json` |
-| A-01 | id-enum | `GET /invoices/62` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=62 classified as 'own' (status 200) | `raw/id-enum__invoices_62_erin.owner@tenant-globex-002_id=62.json` |
-| A-01 | id-enum | `GET /invoices/63` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=63 classified as 'own' (status 200) | `raw/id-enum__invoices_63_erin.owner@tenant-globex-002_id=63.json` |
-| A-01 | id-enum | `GET /invoices/64` | erin.owner@tenant-globex-002 | **LEAK** | id=64 classified as 'leak' (status 200) | `raw/id-enum__invoices_64_erin.owner@tenant-globex-002_id=64.json` |
-| A-01 | id-enum | `GET /invoices/65` | erin.owner@tenant-globex-002 | **LEAK** | id=65 classified as 'leak' (status 200) | `raw/id-enum__invoices_65_erin.owner@tenant-globex-002_id=65.json` |
-| A-01 | id-enum | `GET /invoices/66` | erin.owner@tenant-globex-002 | **LEAK** | id=66 classified as 'leak' (status 200) | `raw/id-enum__invoices_66_erin.owner@tenant-globex-002_id=66.json` |
-| A-01 | id-enum | `GET /invoices/67` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=67 classified as 'own' (status 200) | `raw/id-enum__invoices_67_erin.owner@tenant-globex-002_id=67.json` |
-| A-01 | id-enum | `GET /invoices/68` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=68 classified as 'own' (status 200) | `raw/id-enum__invoices_68_erin.owner@tenant-globex-002_id=68.json` |
-| A-01 | id-enum | `GET /invoices/69` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=69 classified as 'own' (status 200) | `raw/id-enum__invoices_69_erin.owner@tenant-globex-002_id=69.json` |
-| A-01 | id-enum | `GET /invoices/70` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=70 classified as 'own' (status 200) | `raw/id-enum__invoices_70_erin.owner@tenant-globex-002_id=70.json` |
-| A-01 | id-enum | `GET /invoices/71` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=71 classified as 'own' (status 200) | `raw/id-enum__invoices_71_erin.owner@tenant-globex-002_id=71.json` |
-| A-01 | id-enum | `GET /invoices/72` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=72 classified as 'own' (status 200) | `raw/id-enum__invoices_72_erin.owner@tenant-globex-002_id=72.json` |
-| A-01 | id-enum | `GET /invoices/73` | erin.owner@tenant-globex-002 | **LEAK** | id=73 classified as 'leak' (status 200) | `raw/id-enum__invoices_73_erin.owner@tenant-globex-002_id=73.json` |
-| A-01 | id-enum | `GET /invoices/74` | erin.owner@tenant-globex-002 | **LEAK** | id=74 classified as 'leak' (status 200) | `raw/id-enum__invoices_74_erin.owner@tenant-globex-002_id=74.json` |
-| A-01 | id-enum | `GET /invoices/75` | erin.owner@tenant-globex-002 | **LEAK** | id=75 classified as 'leak' (status 200) | `raw/id-enum__invoices_75_erin.owner@tenant-globex-002_id=75.json` |
-| A-01 | id-enum | `GET /invoices/76` | erin.owner@tenant-globex-002 | **LEAK** | id=76 classified as 'leak' (status 200) | `raw/id-enum__invoices_76_erin.owner@tenant-globex-002_id=76.json` |
-| A-01 | id-enum | `GET /invoices/77` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=77 classified as 'own' (status 200) | `raw/id-enum__invoices_77_erin.owner@tenant-globex-002_id=77.json` |
-| A-01 | id-enum | `GET /invoices/78` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=78 classified as 'own' (status 200) | `raw/id-enum__invoices_78_erin.owner@tenant-globex-002_id=78.json` |
-| A-01 | id-enum | `GET /invoices/79` | erin.owner@tenant-globex-002 | PASS (denied) | id=79 classified as 'denied' (status 404) | `raw/id-enum__invoices_79_erin.owner@tenant-globex-002_id=79.json` |
-| A-01 | id-enum | `GET /invoices/80` | erin.owner@tenant-globex-002 | PASS (denied) | id=80 classified as 'denied' (status 404) | `raw/id-enum__invoices_80_erin.owner@tenant-globex-002_id=80.json` |
-| A-01 | id-enum | `GET /invoices/81` | erin.owner@tenant-globex-002 | PASS (denied) | id=81 classified as 'denied' (status 404) | `raw/id-enum__invoices_81_erin.owner@tenant-globex-002_id=81.json` |
-| A-01 | id-enum | `GET /invoices/82` | erin.owner@tenant-globex-002 | PASS (denied) | id=82 classified as 'denied' (status 404) | `raw/id-enum__invoices_82_erin.owner@tenant-globex-002_id=82.json` |
-| A-01 | id-enum | `GET /invoices/83` | erin.owner@tenant-globex-002 | PASS (denied) | id=83 classified as 'denied' (status 404) | `raw/id-enum__invoices_83_erin.owner@tenant-globex-002_id=83.json` |
-| A-05 | id-enum | `GET /invoices/exports/35` | erin.owner@tenant-globex-002 | **LEAK** | id=35 classified as 'leak' (status 200) | `raw/id-enum__invoices_exports_35_erin.owner@tenant-globex-002_id=35.json` |
-| A-05 | id-enum | `GET /invoices/exports/36` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=36 classified as 'own' (status 200) | `raw/id-enum__invoices_exports_36_erin.owner@tenant-globex-002_id=36.json` |
-| A-05 | id-enum | `GET /invoices/exports/37` | erin.owner@tenant-globex-002 | PASS (denied) | id=37 classified as 'denied' (status 404) | `raw/id-enum__invoices_exports_37_erin.owner@tenant-globex-002_id=37.json` |
-| A-05 | id-enum | `GET /invoices/exports/38` | erin.owner@tenant-globex-002 | PASS (denied) | id=38 classified as 'denied' (status 404) | `raw/id-enum__invoices_exports_38_erin.owner@tenant-globex-002_id=38.json` |
-| A-05 | id-enum | `GET /invoices/exports/39` | erin.owner@tenant-globex-002 | PASS (denied) | id=39 classified as 'denied' (status 404) | `raw/id-enum__invoices_exports_39_erin.owner@tenant-globex-002_id=39.json` |
-| A-05 | id-enum | `GET /invoices/exports/40` | erin.owner@tenant-globex-002 | PASS (denied) | id=40 classified as 'denied' (status 404) | `raw/id-enum__invoices_exports_40_erin.owner@tenant-globex-002_id=40.json` |
-| A-05 | id-enum | `GET /invoices/exports/41` | erin.owner@tenant-globex-002 | PASS (denied) | id=41 classified as 'denied' (status 404) | `raw/id-enum__invoices_exports_41_erin.owner@tenant-globex-002_id=41.json` |
+| A-01 | id-enum | `GET /invoices/7` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=7 classified as 'own' (status 200) | `raw/id-enum__invoices_7_erin.owner@tenant-globex-002_id=7.json` |
+| A-01 | id-enum | `GET /invoices/8` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=8 classified as 'own' (status 200) | `raw/id-enum__invoices_8_erin.owner@tenant-globex-002_id=8.json` |
+| A-01 | id-enum | `GET /invoices/9` | erin.owner@tenant-globex-002 | PASS (denied) | id=9 classified as 'denied' (status 404) | `raw/id-enum__invoices_9_erin.owner@tenant-globex-002_id=9.json` |
+| A-01 | id-enum | `GET /invoices/10` | erin.owner@tenant-globex-002 | PASS (denied) | id=10 classified as 'denied' (status 404) | `raw/id-enum__invoices_10_erin.owner@tenant-globex-002_id=10.json` |
+| A-01 | id-enum | `GET /invoices/11` | erin.owner@tenant-globex-002 | PASS (denied) | id=11 classified as 'denied' (status 404) | `raw/id-enum__invoices_11_erin.owner@tenant-globex-002_id=11.json` |
+| A-01 | id-enum | `GET /invoices/12` | erin.owner@tenant-globex-002 | PASS (denied) | id=12 classified as 'denied' (status 404) | `raw/id-enum__invoices_12_erin.owner@tenant-globex-002_id=12.json` |
+| A-01 | id-enum | `GET /invoices/13` | erin.owner@tenant-globex-002 | PASS (denied) | id=13 classified as 'denied' (status 404) | `raw/id-enum__invoices_13_erin.owner@tenant-globex-002_id=13.json` |
+| A-05 | id-enum | `GET /invoices/exports/1` | erin.owner@tenant-globex-002 | **LEAK** | id=1 classified as 'leak' (status 200) | `raw/id-enum__invoices_exports_1_erin.owner@tenant-globex-002_id=1.json` |
+| A-05 | id-enum | `GET /invoices/exports/2` | erin.owner@tenant-globex-002 | PASS (owner allowed) | id=2 classified as 'own' (status 200) | `raw/id-enum__invoices_exports_2_erin.owner@tenant-globex-002_id=2.json` |
+| A-05 | id-enum | `GET /invoices/exports/3` | erin.owner@tenant-globex-002 | PASS (denied) | id=3 classified as 'denied' (status 404) | `raw/id-enum__invoices_exports_3_erin.owner@tenant-globex-002_id=3.json` |
+| A-05 | id-enum | `GET /invoices/exports/4` | erin.owner@tenant-globex-002 | PASS (denied) | id=4 classified as 'denied' (status 404) | `raw/id-enum__invoices_exports_4_erin.owner@tenant-globex-002_id=4.json` |
+| A-05 | id-enum | `GET /invoices/exports/5` | erin.owner@tenant-globex-002 | PASS (denied) | id=5 classified as 'denied' (status 404) | `raw/id-enum__invoices_exports_5_erin.owner@tenant-globex-002_id=5.json` |
+| A-05 | id-enum | `GET /invoices/exports/6` | erin.owner@tenant-globex-002 | PASS (denied) | id=6 classified as 'denied' (status 404) | `raw/id-enum__invoices_exports_6_erin.owner@tenant-globex-002_id=6.json` |
+| A-05 | id-enum | `GET /invoices/exports/7` | erin.owner@tenant-globex-002 | PASS (denied) | id=7 classified as 'denied' (status 404) | `raw/id-enum__invoices_exports_7_erin.owner@tenant-globex-002_id=7.json` |
 | A-04 | list-foreign-rows | `GET /invoices` | alice.owner@tenant-acme-001 | PASS (denied) | no foreign ids present | `raw/list-foreign-rows__invoices_alice.owner@tenant-acme-001.json` |
 | A-04 | list-foreign-rows | `GET /invoices` | bob.admin@tenant-acme-001 | PASS (denied) | no foreign ids present | `raw/list-foreign-rows__invoices_bob.admin@tenant-acme-001.json` |
 | A-04 | list-foreign-rows | `GET /invoices` | carol.accountant@tenant-acme-001 | PASS (denied) | no foreign ids present | `raw/list-foreign-rows__invoices_carol.accountant@tenant-acme-001.json` |

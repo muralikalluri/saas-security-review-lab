@@ -15,9 +15,9 @@
       {
         "id": 1,
         "tenantId": "tenant-acme-001",
-        "name": "PWNED by tenant-globex-002 (A-02 exploit)",
-        "email": "pwned@example.invalid",
-        "phone": "000"
+        "name": "Northwind Traders (fictional)",
+        "email": "ap@northwind-fictional.example",
+        "phone": "+1-555-0101"
       },
       {
         "id": 2,

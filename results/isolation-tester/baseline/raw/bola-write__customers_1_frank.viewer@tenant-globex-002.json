@@ -7,8 +7,8 @@
     "headers": {},
     "body": {
       "name": "ISOLATION-TESTER PROBE (should be reverted) actor=frank.viewer@tenant-globex-002",
-      "email": "pwned@example.invalid",
-      "phone": "000"
+      "email": "ap@northwind-fictional.example",
+      "phone": "+1-555-0101"
     }
   },
   "response": {
@@ -17,8 +17,8 @@
       "id": 1,
       "tenantId": "tenant-acme-001",
       "name": "ISOLATION-TESTER PROBE (should be reverted) actor=frank.viewer@tenant-globex-002",
-      "email": "pwned@example.invalid",
-      "phone": "000"
+      "email": "ap@northwind-fictional.example",
+      "phone": "+1-555-0101"
     }
   }
 }

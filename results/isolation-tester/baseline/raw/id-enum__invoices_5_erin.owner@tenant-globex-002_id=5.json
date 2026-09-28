@@ -1,16 +1,16 @@
 {
-  "probe_id": "id-enum:/invoices/75:erin.owner@tenant-globex-002:id=75",
+  "probe_id": "id-enum:/invoices/5:erin.owner@tenant-globex-002:id=5",
   "actor": "erin.owner@tenant-globex-002",
   "request": {
     "method": "GET",
-    "path": "/invoices/75",
+    "path": "/invoices/5",
     "headers": {},
     "body": null
   },
   "response": {
     "status": 200,
     "body": {
-      "id": 75,
+      "id": 5,
       "tenantId": "tenant-acme-001",
       "customerId": 1,
       "amount": 10.0,

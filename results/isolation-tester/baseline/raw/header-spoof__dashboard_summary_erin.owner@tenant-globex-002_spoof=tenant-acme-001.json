@@ -12,8 +12,8 @@
   "response": {
     "status": 200,
     "body": {
-      "totalAmount": 104772.0,
-      "source": "computed"
+      "source": "computed",
+      "totalAmount": 4620.0
     }
   }
 }

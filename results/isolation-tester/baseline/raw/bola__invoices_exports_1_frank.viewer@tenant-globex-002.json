@@ -1,0 +1,14 @@
+{
+  "probe_id": "bola:/invoices/exports/1:frank.viewer@tenant-globex-002",
+  "actor": "frank.viewer@tenant-globex-002",
+  "request": {
+    "method": "GET",
+    "path": "/invoices/exports/1",
+    "headers": {},
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "body": "id,customer_id,amount,internal_cost,status\n1,1,1200.00,450.00,sent\n2,2,3400.00,1100.00,paid\n5,1,10.00,1.00,draft\n6,1,10.00,1.00,draft\n"
+  }
+}
