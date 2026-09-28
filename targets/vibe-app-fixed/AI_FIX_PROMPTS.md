@@ -3,10 +3,14 @@
 > Deliberately insecure for demonstration. Do not deploy. Run locally only.
 
 One prompt per seeded finding (`SPEC.md` §4 format), written **before** any fix
-was applied, then used verbatim (via Claude Code, against this
-`targets/vibe-app-fixed/` copy) to make each fix - one commit per finding ID,
-in the order below (chosen so every intermediate commit still builds and runs;
-see the note on B-04 breaking two read paths without B-11 landing alongside it).
+was applied, then used (via Claude Code, against this `targets/vibe-app-fixed/`
+copy) to make each fix - one commit per finding ID, in the order below (chosen
+so every intermediate commit still builds and runs; see the note on B-04
+breaking two read paths without B-11 landing alongside it). A handful of
+prompts turned out to describe the implementation slightly differently from
+what actually landed - see "Deviations during implementation" at the end of
+this file rather than assuming every line below is exactly what got built;
+that section is the honest record, not this one.
 
 Each prompt assumes the *previous* prompts in the list have already landed.
 
@@ -45,10 +49,15 @@ Add a new migration `targets/vibe-app-fixed/supabase/migrations/*_fix_rls.sql`
 (don't edit the baseline migrations) that enables RLS on `public.bookings` and
 adds a SELECT policy scoped to `user_id = auth.uid() OR public.is_admin()`
 (create `public.is_admin()` as a `SECURITY DEFINER`, `STABLE`, `SET
-search_path = ''` function reading `profiles.role` for `auth.uid()`, revoked
-from `anon`/`authenticated`/`public` and granted only to itself being callable
-via RLS - a plain subquery on `profiles` inside a `profiles` policy would
-recurse). Revoke `INSERT`, `UPDATE`, `DELETE` on `bookings` from
+search_path = ''` function reading `profiles.role` for `auth.uid()` - a plain
+subquery on `profiles` inside a `profiles` policy would recurse, which is what
+this indirection avoids. Its EXECUTE privilege must stay granted to
+`anon`/`authenticated` - Postgres evaluates an RLS policy expression AS the
+connecting role, so revoking EXECUTE here would make the policy itself fail
+for every real caller, not just lock the function down; that's the opposite
+of what B-06/B-10's RPCs need, where EXECUTE genuinely should be
+service_role-only because those trust their caller completely instead of
+checking `auth.uid()` themselves). Revoke `INSERT`, `UPDATE`, `DELETE` on `bookings` from
 `authenticated` - all writes happen server-side via the service-role client
 or an RPC (see B-10), so a direct PostgREST write must be denied outright,
 not just RLS-narrowed. Acceptance check: `scanners/rls-checker/rls_checker.py`
@@ -185,3 +194,46 @@ does. Add `vitest` tests for `lib/pricing.ts` (valid/invalid quantity) and
 for `book_class`'s route-level validation. Acceptance check: `rg
 "credit_cost\s*\*"` matches only inside `lib/pricing.ts`; `npm test` passes;
 no single file under `app/` exceeds ~150 lines.
+
+## Deviations during implementation
+
+A milestone review compared these prompts against the actual commits line by
+line and caught a few places where what got built differs from what's written
+above. Recorded here rather than silently rewriting the prompts to match the
+result after the fact - the prompts above are what was actually typed and run,
+this section is what happened instead:
+
+- **B-04's prompt** says the compensating fix to `app/studio/members/page.tsx`
+  should "read server-side with the admin client after an admin check". The
+  page that actually landed is **auth-only** (any signed-in member can view
+  it, matching the baseline's own access scope for this page/B-11's original
+  finding) - it uses the service-role client to read `{id, full_name}` because
+  B-04's new RLS policy would otherwise only let a member see their own row,
+  not because the page is admin-restricted. It isn't.
+- **B-05's prompt** says an invalid `params.id` should get a 400. The route
+  that landed returns **404** for that case too, for the same reason the
+  prompt itself gives for not distinguishing "someone else's booking" from
+  "doesn't exist" - an invalid id is just another shape of "not found", not a
+  separately-observable response.
+- **B-09's prompt** says to "generate the storage path server-side". The
+  upload that landed builds the path **client-side**, in
+  `components/AvatarUpload.tsx`, from the MIME type validated against the
+  bucket's own `allowed_mime_types` - the real, enforced security boundary is
+  the bucket configuration (Supabase Storage rejects the request server-side
+  regardless of what path the client asks for), not which process happens to
+  concatenate the path string.
+- **B-02's acceptance check** ("`gitleaks git` reports no hit under
+  `targets/vibe-app-fixed/`") is not met by git HISTORY, only by the current
+  tree: this module's very first commit was a verbatim copy of the baseline,
+  fake secrets included, before this fix landed two commits later - `gitleaks
+  git` (full-history mode) still finds that historical diff every time, by
+  design. See this module's own `README.md` ("Known trade-off") for why that's
+  expected and not a live finding.
+- **B-08 needed a follow-up fix, not just its original prompt.** The RPC as
+  first built deduped only on an exact repeated `event_id`; a milestone review
+  found that a *different* event id for the *same* checkout session (a real
+  shape Stripe redelivery can take) still double-granted, because the
+  `on conflict (event_id)` target didn't cover the table's other unique
+  constraint. Fixed in a follow-up migration
+  (`20240101000008_fix_b08_conflict_target.sql`) changing it to a bare
+  `on conflict do nothing`, which catches a violation of either constraint.

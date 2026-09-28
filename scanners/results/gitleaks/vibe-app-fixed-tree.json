@@ -1,0 +1,72 @@
+[
+ {
+  "RuleID": "jwt",
+  "Description": "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
+  "StartLine": 9,
+  "EndLine": 9,
+  "StartColumn": 28,
+  "EndColumn": 191,
+  "Match": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU",
+  "Secret": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU",
+  "File": "targets/vibe-app-fixed/.env",
+  "SymlinkFile": "",
+  "Commit": "",
+  "Entropy": 5.4566092,
+  "Author": "",
+  "Email": "",
+  "Date": "",
+  "Message": "",
+  "Tags": [],
+  "Fingerprint": "targets/vibe-app-fixed/.env:jwt:9"
+ },
+ {
+  "RuleID": "secret-named-key-literal-value",
+  "Description": "A key whose name contains 'secret' is assigned a bare string literal instead of an environment-variable reference",
+  "StartLine": 11,
+  "EndLine": 11,
+  "StartColumn": 1,
+  "EndColumn": 76,
+  "Match": "STRIPE_SECRET_KEY=FAKE_STRIPE_SECRET_DO_NOT_USE_51NxYzAbCdEfGhIjKlMnOpQrStUv",
+  "Secret": "FAKE_STRIPE_SECRET_DO_NOT_USE_51NxYzAbCdEfGhIjKlMnOpQrStUv",
+  "File": "targets/vibe-app-fixed/.env",
+  "SymlinkFile": "",
+  "Commit": "",
+  "Entropy": 4.779889,
+  "Author": "",
+  "Email": "",
+  "Date": "",
+  "Message": "",
+  "Tags": [
+   "credentials",
+   "custom",
+   "A-09",
+   "B-02"
+  ],
+  "Fingerprint": "targets/vibe-app-fixed/.env:secret-named-key-literal-value:11"
+ },
+ {
+  "RuleID": "secret-named-key-literal-value",
+  "Description": "A key whose name contains 'secret' is assigned a bare string literal instead of an environment-variable reference",
+  "StartLine": 12,
+  "EndLine": 12,
+  "StartColumn": 2,
+  "EndColumn": 72,
+  "Match": "STRIPE_WEBHOOK_SECRET=FAKE_STRIPE_WEBHOOK_SECRET_DO_NOT_USE_whsec_local",
+  "Secret": "FAKE_STRIPE_WEBHOOK_SECRET_DO_NOT_USE_whsec_local",
+  "File": "targets/vibe-app-fixed/.env",
+  "SymlinkFile": "",
+  "Commit": "",
+  "Entropy": 4.2877803,
+  "Author": "",
+  "Email": "",
+  "Date": "",
+  "Message": "",
+  "Tags": [
+   "credentials",
+   "custom",
+   "A-09",
+   "B-02"
+  ],
+  "Fingerprint": "targets/vibe-app-fixed/.env:secret-named-key-literal-value:12"
+ }
+]

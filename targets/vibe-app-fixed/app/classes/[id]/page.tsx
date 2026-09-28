@@ -1,9 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
+import { getClassById } from "@/lib/data/classes";
 import BookingForm from "@/components/BookingForm";
 
 export default async function ClassDetailPage({ params }: { params: { id: string } }) {
-  const supabase = createClient();
-  const { data: classRow } = await supabase.from("classes").select("*").eq("id", params.id).single();
+  const classRow = await getClassById(params.id);
 
   if (!classRow) {
     return <main>Class not found.</main>;

@@ -1,4 +1,5 @@
-import { createClient, getSessionUser } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/supabase/server";
+import { getMyProfile } from "@/lib/data/profile";
 import AvatarUpload from "@/components/AvatarUpload";
 
 export default async function ProfilePage() {
@@ -7,8 +8,7 @@ export default async function ProfilePage() {
     return <main>Please sign in.</main>;
   }
 
-  const supabase = createClient();
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+  const profile = await getMyProfile(user.id);
 
   return (
     <main>

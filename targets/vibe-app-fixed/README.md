@@ -13,10 +13,17 @@ baseline - so `../vibe-app` stays byte-for-byte intentionally vulnerable forever
 (CLAUDE.md) while this module proves every finding B-01..B-12 is closeable.
 
 Built with `AI_FIX_PROMPTS.md` in this directory: one prompt per finding,
-written before any fix, then applied one at a time - **one commit per finding
-ID** (`git log --oneline` in this repo shows the sequence). That's the literal
-answer to SPEC.md §7's M6 instruction to "actually use the AI fix prompts...
-with Claude Code to fix Target B, and keep the commit history."
+written before any fix, then applied one at a time - one commit per finding
+ID, with two exceptions visible in `git log --oneline`: B-03/B-04/B-11 landed
+in a single commit (fixing B-04's RLS policy would otherwise silently break
+the read B-11 also needed fixed, so both had to land together to keep the app
+working), and B-08 needed a small follow-up migration after a milestone
+review found its original dedup logic incomplete (see
+`AI_FIX_PROMPTS.md`'s "Deviations during implementation" section for this and
+a few other places where the prompt and the actual commit differ slightly).
+That's the literal answer to SPEC.md §7's M6 instruction to "actually use the
+AI fix prompts... with Claude Code to fix Target B, and keep the commit
+history" - including the parts that didn't go exactly as planned.
 
 ## Run
 
@@ -55,24 +62,31 @@ scanners/rls-checker/.venv/bin/python scanners/rls-checker/rls_checker.py \
   --target-dir targets/vibe-app-fixed --run-name vibe-app-fixed
 # 0 FAIL - see scanners/results/rls-checker/vibe-app-fixed/rls-matrix.md
 # (never trust this comment over that generated file)
+
+# gitleaks and Semgrep against this module's current tree:
+gitleaks dir --no-banner --config scanners/gitleaks/gitleaks.toml targets/vibe-app-fixed
+# see scanners/results/gitleaks/vibe-app-fixed-tree.md - 0 hits in git-tracked files
+semgrep scan --config scanners/semgrep-rules/vibe-app.yml \
+  targets/vibe-app-fixed/app targets/vibe-app-fixed/components targets/vibe-app-fixed/lib
+# see scanners/results/semgrep/vibe-app-fixed.json - 0 findings
 ```
 
 ## What changed, per finding
 
-| ID | Fix |
-|---|---|
-| B-01 | Service-role key moved server-only: `app/api/admin/users/route.ts` uses `lib/supabase/admin.ts`'s `createAdminClient()`; `NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY` removed entirely |
-| B-02 | `lib/stripe.ts` reads `STRIPE_SECRET_KEY` from env with no fallback (throws if unset); `.env` gitignored and untracked |
-| B-03 | RLS enabled on `bookings`; `INSERT`/`UPDATE`/`DELETE` explicitly revoked from `authenticated` (Supabase's default ACLs grant them on every new table) - every write goes through a service-role route or RPC |
-| B-04 | `profiles`' `using (true)` SELECT policy replaced with `id = auth.uid() or is_admin()`; `is_admin()` is a `SECURITY DEFINER` function (avoids the self-referential-policy recursion a plain subquery would hit) |
-| B-05 | `POST /api/bookings/[id]/cancel` filters on `id`, `user_id = caller`, and `status = 'confirmed'`; a UUID-shaped, someone-else's, or already-cancelled id all return the same 404 |
-| B-06 | New `lib/auth/require-admin.ts`, shared by every admin route/page; `grant_credits()` is a `SECURITY DEFINER` RPC (atomic, `EXECUTE` restricted to `service_role`) |
-| B-07 | `stripe.webhooks.constructEvent()` against the raw body and `stripe-signature` header; any failure is 400 before the payload is ever parsed |
-| B-08 | `stripe_events(event_id primary key)` + `apply_checkout_credits()`, one atomic RPC - a replayed event id is a no-op |
-| B-09 | `avatars` bucket's `allowed_mime_types` restricted to png/jpeg/webp with a 2 MiB cap; stored filename's extension comes from the validated type, never the raw `file.name` |
-| B-10 | `book_class()` RPC: locks the class row, re-checks capacity and balance, debits credits and inserts the booking atomically; quantity validated as a bounded positive integer first |
-| B-11 | `app/studio/members/page.tsx` selects only `{id, full_name}` - fixed in the SAME commit as B-04, since B-04's RLS change would otherwise have silently broken this page's read |
-| B-12 | One pricing formula (`lib/pricing.ts`, validates rather than clamps), one data module (`lib/data/dashboard.ts`), the ~600-line dashboard page split into 13 components under `components/dashboard/` (largest `app/` file is now 83 lines), and `vitest` tests added (`lib/pricing.test.ts`, `lib/validation.test.ts`) |
+| ID | Before (baseline) | Fix |
+|---|---|---|
+| B-01 | Service-role key read from a `NEXT_PUBLIC_`-prefixed var in a `"use client"` component - shipped to every browser | Moved server-only: `app/api/admin/users/route.ts` uses `lib/supabase/admin.ts`'s `createAdminClient()`; `NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY` removed entirely |
+| B-02 | `STRIPE_SECRET_KEY` hardcoded in `lib/stripe.ts`; `.env` committed to git | `lib/stripe.ts` reads `STRIPE_SECRET_KEY` from env with no fallback (throws on first use if unset - lazily, so a build with no Stripe credentials configured still succeeds); `.env` gitignored and untracked |
+| B-03 | RLS never enabled on `bookings` at all | RLS enabled; `INSERT`/`UPDATE`/`DELETE` explicitly revoked from `authenticated` (Supabase's default ACLs grant them on every new table) - every write goes through a service-role route or RPC |
+| B-04 | `profiles` SELECT policy was `using (true)` - any member could read any other member's row | Replaced with `id = auth.uid() or is_admin()`; `is_admin()` is a `SECURITY DEFINER` function (avoids the self-referential-policy recursion a plain subquery would hit), EXECUTE kept granted to `anon`/`authenticated` since RLS evaluates it as the connecting role |
+| B-05 | `POST /api/bookings/[id]/cancel` checked login only, not ownership | Filters on `id`, `user_id = caller`, and `status = 'confirmed'`; an invalid-UUID, someone-else's, or already-cancelled id all return the same 404 |
+| B-06 | `grant-credits` route had no server-side role check | New `lib/auth/require-admin.ts`, shared by every admin route/page; `grant_credits()` is a `SECURITY DEFINER` RPC (atomic, `EXECUTE` restricted to `service_role`) |
+| B-07 | Webhook parsed the body with no signature check | `stripe.webhooks.constructEvent()` against the raw body and `stripe-signature` header; any failure is 400 before the payload is ever parsed |
+| B-08 | No dedup - a replayed event granted credits twice | `stripe_events(event_id primary key, checkout_session_id unique)` + `apply_checkout_credits()`, one atomic RPC keyed on EITHER unique constraint (see `AI_FIX_PROMPTS.md`'s deviations note - the first version only caught an exact repeated `event_id`, not a different event id for the same session; fixed in a follow-up migration) |
+| B-09 | Avatar bucket accepted any file type/size; SVG served inline | `allowed_mime_types` restricted to png/jpeg/webp with a 2 MiB cap; stored filename's extension comes from the validated type, never the raw `file.name` |
+| B-10 | Booking `quantity` never validated; a negative value increased the balance | `book_class()` RPC: locks the class row, re-checks capacity and balance, debits credits and inserts the booking atomically; quantity validated as a bounded positive integer first (hardened further in a follow-up migration to also reject a negative cost passed directly to the RPC) |
+| B-11 | `/studio/members` selected full profile rows (incl. phone) for the RSC payload | Selects only `{id, full_name}` - fixed in the SAME commit as B-04, since B-04's RLS change would otherwise have silently broken this page's read |
+| B-12 | Pricing formula pasted 3×, only one copy validated; 4 inline Supabase queries in a ~600-line page; zero tests | One pricing formula (`lib/pricing.ts`, validates rather than clamps), one data module per page (`lib/data/{dashboard,classes,bookings,profile}.ts`), the ~600-line dashboard page split into 14 components under `components/dashboard/` (largest `app/` file is now 83 lines), and `vitest` tests added (`lib/pricing.test.ts`, `lib/validation.test.ts`) |
 
 Every fix keeps the corresponding app-level check even where RLS now also
 covers it (e.g. B-05's ownership check, B-06's role check) - RLS only

@@ -1,37 +1,42 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import type Stripe from "stripe";
-
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-if (!webhookSecret) {
-  throw new Error("STRIPE_WEBHOOK_SECRET is not set - copy .env.example to .env and fill it in.");
-}
 
 /**
  * B-07 (fixed, SPEC.md B-07): reads the RAW body (request.text(), not
  * .json() - constructEvent needs the exact bytes Stripe signed) and
  * verifies it against the `stripe-signature` header before touching
  * anything. Any failure - missing header, wrong secret, tampered body,
- * expired timestamp - returns 400 without ever parsing the payload as an
- * event. Fails closed at import time if STRIPE_WEBHOOK_SECRET is unset,
- * rather than silently skipping verification.
+ * expired timestamp, or STRIPE_WEBHOOK_SECRET itself being unset - returns
+ * 400/500 without ever parsing the payload as an event. The secret is read
+ * lazily (inside the handler, not at module import) so a build environment
+ * with no Stripe credentials configured (e.g. CI) can still build this
+ * route; the fail-closed behaviour is unchanged; it just fires per-request
+ * instead of at import time.
  *
  * B-08 (fixed, SPEC.md B-08): the actual credit grant now happens inside
- * apply_checkout_credits() (see the migration), a single atomic SQL
- * statement that records the event id (unique constraint) and grants
- * credits together - replaying the identical event, or a different event
- * for the same checkout session, is a no-op the second time. The
- * baseline's select-balance-then-write-balance was also a lost-update race
- * even ignoring replay; this RPC fixes both with one change.
+ * apply_checkout_credits() (see the migrations), a single atomic SQL
+ * statement that records the event, keyed by EITHER its event id or its
+ * checkout session id (whichever unique constraint the insert would
+ * violate), and grants credits together - replaying the identical event,
+ * or a different event for the same checkout session, is a no-op the
+ * second time. The baseline's select-balance-then-write-balance was also a
+ * lost-update race even ignoring replay; this RPC fixes both with one
+ * change.
  */
 export async function POST(request: Request) {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    return NextResponse.json({ error: "STRIPE_WEBHOOK_SECRET is not set" }, { status: 500 });
+  }
+
   const rawBody = await request.text();
   const signature = request.headers.get("stripe-signature");
 
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(rawBody, signature ?? "", webhookSecret!);
+    event = getStripe().webhooks.constructEvent(rawBody, signature ?? "", webhookSecret);
   } catch {
     return NextResponse.json({ error: "invalid signature" }, { status: 400 });
   }

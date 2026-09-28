@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { getSessionUser } from "@/lib/supabase/server";
 
 /**
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   const origin = new URL(request.url).origin;
 
   try {
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       mode: "payment",
       line_items: [{ price_data: { currency: "usd", unit_amount: 2500, product_data: { name: "10 class credits (fictional)" } }, quantity: 1 }],
       success_url: `${origin}/bookings?purchase=success`,

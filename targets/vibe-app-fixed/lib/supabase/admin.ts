@@ -4,10 +4,10 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 /**
  * Service-role client. SERVER ONLY - the `server-only` import above makes
  * Next.js fail the build if any client component ever imports this file.
- * Contrast with components/AdminUserList.tsx (B-01), which does NOT use
- * this file and instead builds its own service-role client directly in a
- * "use client" component, from a NEXT_PUBLIC_-prefixed env var - shipping
- * the key to the browser bundle regardless of this file existing correctly.
+ * B-01 (fixed, SPEC.md B-01): components/AdminUserList.tsx no longer builds
+ * its own service-role client from a NEXT_PUBLIC_-prefixed var in a "use
+ * client" component - it fetches from app/api/admin/users/route.ts, which
+ * uses this file correctly instead.
  */
 export function createAdminClient() {
   return createSupabaseClient(

@@ -34,6 +34,21 @@ EXPECTED_GITLEAKS = {
     ("secret-named-key-literal-value", "targets/tenant-api/src/main/resources/application.yml", 42),
     ("secret-named-const-literal-value", "targets/vibe-app/lib/stripe.ts", 11),
     ("spring-default-secret-fallback", "targets/tenant-api/src/main/resources/application.yml", 12),
+    # M6's targets/vibe-app-fixed/ started as a verbatim copy of the baseline
+    # above (commit 0883352), before B-01/B-02 fixed it two commits later -
+    # `gitleaks git` scans full history, so that scaffold commit's diff
+    # permanently contains the SAME already-known-fake values under the
+    # fixed module's own path. Documented in
+    # targets/vibe-app-fixed/README.md's "Known trade-off" section - the
+    # CURRENT tree is clean (see targets/vibe-app-fixed/exploits/B-02-*.sh);
+    # this is history, not a live finding, and gitleaks is correctly
+    # finding it every time, so it belongs in the expected set rather than
+    # letting CI silently go red on the next push.
+    ("jwt", "targets/vibe-app-fixed/.env", 18),
+    ("jwt", "targets/vibe-app-fixed/.env", 23),
+    ("secret-named-key-literal-value", "targets/vibe-app-fixed/.env", 27),
+    ("secret-named-key-literal-value", "targets/vibe-app-fixed/.env", 28),
+    ("secret-named-const-literal-value", "targets/vibe-app-fixed/lib/stripe.ts", 11),
 }
 
 EXPECTED_SEMGREP = {
