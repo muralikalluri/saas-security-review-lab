@@ -1,0 +1,24 @@
+{
+  "probe_id": "bola-write:/customers/3:alice.owner@tenant-acme-001",
+  "actor": "alice.owner@tenant-acme-001",
+  "request": {
+    "method": "PUT",
+    "path": "/customers/3",
+    "headers": {},
+    "body": {
+      "name": "ISOLATION-TESTER PROBE (should be reverted) actor=alice.owner@tenant-acme-001",
+      "email": "ap@wayfarer-fictional.example",
+      "phone": "+1-555-0201"
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "id": 3,
+      "tenantId": "tenant-globex-002",
+      "name": "ISOLATION-TESTER PROBE (should be reverted) actor=alice.owner@tenant-acme-001",
+      "email": "ap@wayfarer-fictional.example",
+      "phone": "+1-555-0201"
+    }
+  }
+}

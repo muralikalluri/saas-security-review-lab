@@ -1,0 +1,17 @@
+{
+  "probe_id": "role-restricted:/users/invite:frank.viewer@tenant-globex-002",
+  "actor": "frank.viewer@tenant-globex-002",
+  "request": {
+    "method": "POST",
+    "path": "/users/invite",
+    "headers": {},
+    "body": {
+      "email": "probe+viewer@tenant-globex-002.example",
+      "role": "admin"
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": 27
+  }
+}

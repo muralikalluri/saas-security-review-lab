@@ -1,0 +1,273 @@
+{
+  "probe_id": "header-spoof:/invoices:frank.viewer@tenant-globex-002:spoof=tenant-acme-001",
+  "actor": "frank.viewer@tenant-globex-002",
+  "request": {
+    "method": "GET",
+    "path": "/invoices",
+    "headers": {
+      "X-Tenant-Id": "tenant-acme-001"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "body": [
+      {
+        "id": 1,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 1200.0,
+        "internalCost": 450.0,
+        "status": "sent"
+      },
+      {
+        "id": 2,
+        "tenantId": "tenant-acme-001",
+        "customerId": 2,
+        "amount": 3400.0,
+        "internalCost": 1100.0,
+        "status": "paid"
+      },
+      {
+        "id": 6,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 99999.0,
+        "internalCost": 1.0,
+        "status": "sent"
+      },
+      {
+        "id": 7,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 8,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 15,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 16,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 17,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 18,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 25,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 26,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 27,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 28,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 35,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 36,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 37,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 38,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 45,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 46,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 47,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 48,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 55,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 56,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 57,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 58,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 64,
+        "tenantId": "tenant-acme-001",
+        "customerId": 3,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 65,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 66,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 73,
+        "tenantId": "tenant-acme-001",
+        "customerId": 3,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 74,
+        "tenantId": "tenant-acme-001",
+        "customerId": 3,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 75,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 76,
+        "tenantId": "tenant-acme-001",
+        "customerId": 1,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      }
+    ]
+  }
+}

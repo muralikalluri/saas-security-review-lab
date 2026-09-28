@@ -43,7 +43,7 @@ than inventing one.
 **Why it matters.** Next.js inlines every `NEXT_PUBLIC_*` variable into the JavaScript bundle shipped to every visitor's browser, logged in or not. Anyone who views page source gets a credential that can read or write ANY row in the database, unrestricted.
 
 **Exact fix.** Move the query behind a server-only route using the service-role client correctly (never in a "use client" component); delete the NEXT_PUBLIC_ variable entirely.
-  Diff: `git show 1ca4b02` (or `git diff 1ca4b02~1..1ca4b02`).
+  Diff: `git show 1ca4b02`.
 
 **AI fix prompt** (copy-paste into Claude Code / Cursor):
 
@@ -76,7 +76,7 @@ check: `npm run build` in `targets/vibe-app-fixed`, then `grep -r
 **Why it matters.** Anyone with read access to the repository - a contractor, a leaked backup, an over-shared CI log - obtains a live-shaped credential that can act as the application against Stripe's API.
 
 **Exact fix.** Read the secret from an environment variable with no hardcoded fallback (fail to start if unset); add .env to .gitignore and stop committing it.
-  Diff: `git show 9026039` (or `git diff 9026039~1..9026039`).
+  Diff: `git show 9026039`, `git show 9c39b99` (a follow-up commit after the first fix was found incomplete).
 
 **AI fix prompt** (copy-paste into Claude Code / Cursor):
 
@@ -94,6 +94,8 @@ targets/vibe-app-fixed/.env` finds nothing; `gitleaks git --config
 scanners/gitleaks/gitleaks.toml` reports no hit under `targets/vibe-app-fixed/`.
 ```
 
+> **Deviation from the prompt above, caught in review:** **B-02's acceptance check** ("`gitleaks git` reports no hit under `targets/vibe-app-fixed/`") is not met by git HISTORY, only by the current tree: this module's very first commit was a verbatim copy of the baseline, fake secrets included, before this fix landed two commits later - `gitleaks git` (full-history mode) still finds that historical diff every time, by design. See this module's own `README.md` ("Known trade-off") for why that's expected and not a live finding.
+
 ### B-03 — Critical
 
 **OWASP:** A01:2021 - Broken Access Control · API1:2023 - Broken Object Level Authorization  
@@ -109,7 +111,7 @@ scanners/gitleaks/gitleaks.toml` reports no hit under `targets/vibe-app-fixed/`.
 **Why it matters.** Any authenticated user can read, update, or delete EVERY other user's bookings directly through Supabase's own REST API, completely bypassing the Next.js app's own routes and any checks they perform.
 
 **Exact fix.** Enable RLS with an owner/admin SELECT policy; explicitly revoke INSERT/UPDATE/DELETE from `authenticated` - every write must go through a service-role route or RPC, since a policy alone doesn't override Supabase's default table-level grants.
-  Diff: `git show 40c4128` (or `git diff 40c4128~1..40c4128`).
+  Diff: `git show 40c4128`.
 
 **AI fix prompt** (copy-paste into Claude Code / Cursor):
 
@@ -118,20 +120,17 @@ Add a new migration `targets/vibe-app-fixed/supabase/migrations/*_fix_rls.sql`
 (don't edit the baseline migrations) that enables RLS on `public.bookings` and
 adds a SELECT policy scoped to `user_id = auth.uid() OR public.is_admin()`
 (create `public.is_admin()` as a `SECURITY DEFINER`, `STABLE`, `SET
-search_path = ''` function reading `profiles.role` for `auth.uid()` - a plain
-subquery on `profiles` inside a `profiles` policy would recurse, which is what
-this indirection avoids. Its EXECUTE privilege must stay granted to
-`anon`/`authenticated` - Postgres evaluates an RLS policy expression AS the
-connecting role, so revoking EXECUTE here would make the policy itself fail
-for every real caller, not just lock the function down; that's the opposite
-of what B-06/B-10's RPCs need, where EXECUTE genuinely should be
-service_role-only because those trust their caller completely instead of
-checking `auth.uid()` themselves). Revoke `INSERT`, `UPDATE`, `DELETE` on `bookings` from
+search_path = ''` function reading `profiles.role` for `auth.uid()`, revoked
+from `anon`/`authenticated`/`public` and granted only to itself being callable
+via RLS - a plain subquery on `profiles` inside a `profiles` policy would
+recurse). Revoke `INSERT`, `UPDATE`, `DELETE` on `bookings` from
 `authenticated` - all writes happen server-side via the service-role client
 or an RPC (see B-10), so a direct PostgREST write must be denied outright,
 not just RLS-narrowed. Acceptance check: `scanners/rls-checker/rls_checker.py`
 against this stack's DB reports 0 FAIL for `bookings`.
 ```
+
+> **Deviation from the prompt above, caught in review:** **B-03's prompt was itself wrong**, and the commit did not follow it: it says to create `is_admin()` "revoked from `anon`/`authenticated`/`public` and granted only to itself being callable via RLS". That's a technical error - Postgres evaluates an RLS policy expression AS the connecting role, so revoking EXECUTE on a function a policy calls makes the policy fail for every real caller, not just lock the function down (the opposite of what B-06/B-10's RPCs need, where EXECUTE genuinely should be service_role-only because those trust their caller completely instead of checking `auth.uid()` themselves). The commit that actually landed kept EXECUTE granted to `anon`/`authenticated`, correctly. A later attempt to "fix" this by silently rewriting the prompt text itself (rather than recording it here) was caught in review and reverted - the prompt above is the original, unedited, technically-wrong version that was really run.
 
 ### B-04 — Critical
 
@@ -148,7 +147,7 @@ against this stack's DB reports 0 FAIL for `bookings`.
 **Why it matters.** Every authenticated user can read every other user's profile row, including email and phone number - a full customer-PII leak.
 
 **Exact fix.** Replace the policy with `id = auth.uid() OR is_admin()`; add a SECURITY DEFINER is_admin() helper to avoid the self-referential-policy recursion a plain subquery on profiles would hit.
-  Diff: `git show 40c4128` (or `git diff 40c4128~1..40c4128`).
+  Diff: `git show 40c4128`.
 
 **AI fix prompt** (copy-paste into Claude Code / Cursor):
 
@@ -166,6 +165,8 @@ Acceptance check: `scanners/rls-checker/rls_checker.py` reports 0 FAIL for
 when visited as `noah.admin`.
 ```
 
+> **Deviation from the prompt above, caught in review:** **B-04's prompt** says the compensating fix to `app/studio/members/page.tsx` should "read server-side with the admin client after an admin check". The page that actually landed is **auth-only** (any signed-in member can view it, matching the baseline's own access scope for this page/B-11's original finding) - it uses the service-role client to read `{id, full_name}` because B-04's new RLS policy would otherwise only let a member see their own row, not because the page is admin-restricted. It isn't.
+
 ### B-05 — High
 
 **OWASP:** A01:2021 - Broken Access Control · API1:2023 - Broken Object Level Authorization  
@@ -181,7 +182,7 @@ when visited as `noah.admin`.
 **Why it matters.** Any authenticated user can cancel any OTHER user's booking by id - a denial-of-service against a specific victim's reservations.
 
 **Exact fix.** Filter the update on id AND user_id (AND status, to make a second cancel a no-op); return the same 404 whether the booking belongs to someone else or doesn't exist.
-  Diff: `git show 0a17f5c` (or `git diff 0a17f5c~1..0a17f5c`).
+  Diff: `git show 0a17f5c`.
 
 **AI fix prompt** (copy-paste into Claude Code / Cursor):
 
@@ -194,6 +195,8 @@ doesn't exist (don't let the response distinguish the two). Acceptance check:
 `exploits/B-05-cancel-any-booking.sh` (run against this fixed stack) shows
 liam getting a 404 and maya's booking still `confirmed`.
 ```
+
+> **Deviation from the prompt above, caught in review:** **B-05's prompt** says an invalid `params.id` should get a 400. The route that landed returns **404** for that case too, for the same reason the prompt itself gives for not distinguishing "someone else's booking" from "doesn't exist" - an invalid id is just another shape of "not found", not a separately-observable response.
 
 ### B-06 — High
 
@@ -211,7 +214,7 @@ liam getting a 404 and maya's booking still `confirmed`.
 **Why it matters.** Any authenticated user can call the route directly and grant themselves - or anyone - unlimited free credits, bypassing the studio's entire paid-credit model.
 
 **Exact fix.** Add a shared requireAdmin() helper (reads profiles.role via the service-role client, never client-supplied data) and call it before doing anything else in the route, returning 403 before even looking up the target user.
-  Diff: `git show a66f945` (or `git diff a66f945~1..a66f945`).
+  Diff: `git show a66f945`.
 
 **AI fix prompt** (copy-paste into Claude Code / Cursor):
 
@@ -244,7 +247,7 @@ this stack returns 403 with liam's balance unchanged.
 **Why it matters.** Anyone who knows the webhook URL can POST an arbitrary forged event and have it processed as if Stripe sent it - including a fake `checkout.session.completed` that grants free credits (see B-08).
 
 **Exact fix.** Verify the raw body against the stripe-signature header with stripe.webhooks.constructEvent() before parsing anything; fail closed if the webhook secret is unset.
-  Diff: `git show 5e30c6f` (or `git diff 5e30c6f~1..5e30c6f`).
+  Diff: `git show 5e30c6f`, `git show 9c39b99` (a follow-up commit after the first fix was found incomplete).
 
 **AI fix prompt** (copy-paste into Claude Code / Cursor):
 
@@ -275,7 +278,7 @@ database. Fail closed (500) at import/request time if
 **Why it matters.** A replayed (or maliciously resubmitted) webhook event grants the same credits repeatedly - direct financial loss for the business, scaling with however many times the event is replayed.
 
 **Exact fix.** Record processed event ids in a table with a unique constraint, and grant credits in the SAME atomic statement (a SECURITY DEFINER RPC) so there is no window where one succeeded without the other.
-  Diff: `git show 292563a` (or `git diff 292563a~1..292563a`).
+  Diff: `git show 292563a`, `git show 9c39b99` (a follow-up commit after the first fix was found incomplete).
 
 **AI fix prompt** (copy-paste into Claude Code / Cursor):
 
@@ -302,6 +305,8 @@ correctly-signed event (via `stripe.webhooks.generateTestHeaderString`)
 twice, shows the balance moving by the credit amount exactly once.
 ```
 
+> **Deviation from the prompt above, caught in review:** **B-08 needed a follow-up fix, not just its original prompt.** The RPC as first built deduped only on an exact repeated `event_id`; a milestone review found that a *different* event id for the *same* checkout session (a real shape Stripe redelivery can take) still double-granted, because the `on conflict (event_id)` target didn't cover the table's other unique constraint. Fixed in a follow-up migration (`20240101000008_fix_b08_conflict_target.sql`) changing it to a bare `on conflict do nothing`, which catches a violation of either constraint. `exploits/B-08-webhook-duplicate-event-double-grant.sh` originally only replayed the identical event id, so it would not have caught this by itself - a second check (two differently-id'd events for the same checkout session) was added to the script as a regression test.
+
 ### B-09 — High
 
 **OWASP:** A03:2021 - Injection · API8:2023 - Security Misconfiguration  
@@ -318,7 +323,7 @@ twice, shows the balance moving by the credit amount exactly once.
 **Why it matters.** Stored XSS - a malicious SVG avatar executes its script in the browser of anyone who views it, including via the public bucket URL directly.
 
 **Exact fix.** Restrict the bucket's allowed_mime_types to a real-image allow-list (no SVG) with a file size cap, and derive the stored filename's extension from the validated type, never the raw uploaded filename.
-  Diff: `git show 87dd892` (or `git diff 87dd892~1..87dd892`).
+  Diff: `git show 87dd892`.
 
 **AI fix prompt** (copy-paste into Claude Code / Cursor):
 
@@ -333,6 +338,8 @@ from the validated MIME type (never from `file.name`). Acceptance check:
 `exploits/B-09-svg-avatar-stored-xss.sh` against this stack gets a non-2xx
 upload response for the SVG.
 ```
+
+> **Deviation from the prompt above, caught in review:** **B-09's prompt** says to "generate the storage path server-side". The upload that landed builds the path **client-side**, in `components/AvatarUpload.tsx`, from the MIME type validated against the bucket's own `allowed_mime_types` - the real, enforced security boundary is the bucket configuration (Supabase Storage rejects the request server-side regardless of what path the client asks for), not which process happens to concatenate the path string.
 
 ### B-10 — Medium
 
@@ -349,7 +356,7 @@ upload response for the SVG.
 **Why it matters.** Any authenticated user can generate unlimited free credits for themselves with a single crafted request - direct financial loss.
 
 **Exact fix.** Validate quantity is a positive integer within a sane bound before it reaches the database; move the booking + credit debit into one atomic, capacity/balance-checking database function.
-  Diff: `git show 4bc097d` (or `git diff 4bc097d~1..4bc097d`).
+  Diff: `git show 4bc097d`, `git show 9c39b99` (a follow-up commit after the first fix was found incomplete).
 
 **AI fix prompt** (copy-paste into Claude Code / Cursor):
 
@@ -388,7 +395,7 @@ with liam's balance unchanged.
 **Why it matters.** Any member's browser receives every other member's email and phone number in the page's data payload, even though the rendered UI never shows it - trivially recoverable by inspecting network traffic.
 
 **Exact fix.** Select only the columns the page actually renders ({id, full_name}) - fixing what data is FETCHED, not just what's displayed, closes the leak regardless of future rendering changes.
-  Diff: `git show 40c4128` (or `git diff 40c4128~1..40c4128`).
+  Diff: `git show 40c4128`.
 
 **AI fix prompt** (copy-paste into Claude Code / Cursor):
 
@@ -417,7 +424,7 @@ has its own row in the report; there is no separate commit for it.
 **Why it matters.** Not directly exploitable on its own, but this is exactly the surface where a fix for one bug (like B-10's quantity clamp) gets applied to one duplicated copy of the logic and silently missed in the others - as it literally did in the baseline.
 
 **Exact fix.** One shared, VALIDATING pricing function; one data-access module for the dashboard; the page split into small components; tests covering the pricing/validation logic.
-  Diff: `git show 47e926f` (or `git diff 47e926f~1..47e926f`).
+  Diff: `git show 47e926f`, `git show 9c39b99` (a follow-up commit after the first fix was found incomplete).
 
 **AI fix prompt** (copy-paste into Claude Code / Cursor):
 
@@ -441,6 +448,8 @@ for `book_class`'s route-level validation. Acceptance check: `rg
 "credit_cost\s*\*"` matches only inside `lib/pricing.ts`; `npm test` passes;
 no single file under `app/` exceeds ~150 lines.
 ```
+
+> **Deviation from the prompt above, caught in review:** **B-12's prompt** asks for `vitest` tests covering `book_class`'s route-level validation specifically. What exists is `lib/validation.test.ts` (unit tests for the shared validation function) plus live coverage of `book_class` itself via `exploits/B-10-negative-quantity-booking.sh` (quantities `-5`, `0`, `21`, non-integer, and a negative cost passed directly to the RPC) - real coverage of the same cases, but as an integration exploit script against a live database, not a `vitest` test.
 
 
 ## Remediation plan

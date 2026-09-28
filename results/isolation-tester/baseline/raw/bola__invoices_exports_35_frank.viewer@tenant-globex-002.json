@@ -1,0 +1,14 @@
+{
+  "probe_id": "bola:/invoices/exports/35:frank.viewer@tenant-globex-002",
+  "actor": "frank.viewer@tenant-globex-002",
+  "request": {
+    "method": "GET",
+    "path": "/invoices/exports/35",
+    "headers": {},
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "body": "id,customer_id,amount,internal_cost,status\n1,1,1200.00,450.00,sent\n2,2,3400.00,1100.00,paid\n6,1,99999.00,1.00,sent\n7,1,10.00,1.00,draft\n8,1,10.00,1.00,draft\n15,1,1.00,0.50,draft\n16,1,1.00,0.50,draft\n17,1,10.00,1.00,draft\n18,1,10.00,1.00,draft\n25,1,1.00,0.50,draft\n26,1,1.00,0.50,draft\n27,1,10.00,1.00,draft\n28,1,10.00,1.00,draft\n35,1,1.00,0.50,draft\n36,1,1.00,0.50,draft\n37,1,10.00,1.00,draft\n38,1,10.00,1.00,draft\n45,1,1.00,0.50,draft\n46,1,1.00,0.50,draft\n47,1,10.00,1.00,draft\n48,1,10.00,1.00,draft\n55,1,1.00,0.50,draft\n56,1,1.00,0.50,draft\n57,1,10.00,1.00,draft\n58,1,10.00,1.00,draft\n64,3,1.00,0.50,draft\n65,1,10.00,1.00,draft\n66,1,10.00,1.00,draft\n73,3,1.00,0.50,draft\n74,3,1.00,0.50,draft\n75,1,10.00,1.00,draft\n76,1,10.00,1.00,draft\n"
+  }
+}

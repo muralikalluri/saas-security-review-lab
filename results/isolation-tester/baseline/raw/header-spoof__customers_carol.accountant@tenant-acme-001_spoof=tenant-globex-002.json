@@ -1,0 +1,31 @@
+{
+  "probe_id": "header-spoof:/customers:carol.accountant@tenant-acme-001:spoof=tenant-globex-002",
+  "actor": "carol.accountant@tenant-acme-001",
+  "request": {
+    "method": "GET",
+    "path": "/customers",
+    "headers": {
+      "X-Tenant-Id": "tenant-globex-002"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "body": [
+      {
+        "id": 3,
+        "tenantId": "tenant-globex-002",
+        "name": "Wayfarer Logistics (fictional)",
+        "email": "ap@wayfarer-fictional.example",
+        "phone": "+1-555-0201"
+      },
+      {
+        "id": 4,
+        "tenantId": "tenant-globex-002",
+        "name": "Bluecrest Media (fictional)",
+        "email": "ap@bluecrest-fictional.example",
+        "phone": "+1-555-0202"
+      }
+    ]
+  }
+}

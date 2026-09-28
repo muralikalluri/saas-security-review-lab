@@ -1,0 +1,21 @@
+{
+  "probe_id": "bola:/invoices/2:frank.viewer@tenant-globex-002",
+  "actor": "frank.viewer@tenant-globex-002",
+  "request": {
+    "method": "get",
+    "path": "/invoices/2",
+    "headers": {},
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "id": 2,
+      "tenantId": "tenant-acme-001",
+      "customerId": 2,
+      "amount": 3400.0,
+      "internalCost": 1100.0,
+      "status": "paid"
+    }
+  }
+}

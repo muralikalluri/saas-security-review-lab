@@ -1,0 +1,21 @@
+{
+  "probe_id": "id-enum:/invoices/58:erin.owner@tenant-globex-002:id=58",
+  "actor": "erin.owner@tenant-globex-002",
+  "request": {
+    "method": "GET",
+    "path": "/invoices/58",
+    "headers": {},
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "id": 58,
+      "tenantId": "tenant-acme-001",
+      "customerId": 1,
+      "amount": 10.0,
+      "internalCost": 1.0,
+      "status": "draft"
+    }
+  }
+}

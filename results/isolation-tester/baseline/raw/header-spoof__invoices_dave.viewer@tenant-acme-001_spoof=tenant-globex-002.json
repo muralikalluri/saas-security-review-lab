@@ -1,0 +1,377 @@
+{
+  "probe_id": "header-spoof:/invoices:dave.viewer@tenant-acme-001:spoof=tenant-globex-002",
+  "actor": "dave.viewer@tenant-acme-001",
+  "request": {
+    "method": "GET",
+    "path": "/invoices",
+    "headers": {
+      "X-Tenant-Id": "tenant-globex-002"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "body": [
+      {
+        "id": 3,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 5600.0,
+        "internalCost": 2200.0,
+        "status": "sent"
+      },
+      {
+        "id": 4,
+        "tenantId": "tenant-globex-002",
+        "customerId": 4,
+        "amount": 900.0,
+        "internalCost": 300.0,
+        "status": "draft"
+      },
+      {
+        "id": 9,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 10,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 11,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 12,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 13,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 14,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 19,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 20,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 21,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 22,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 23,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 24,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 29,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 30,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 31,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 32,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 33,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 34,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 39,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 40,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 41,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 42,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 43,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 44,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 49,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 50,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 51,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 52,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 53,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 54,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 59,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 60,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 61,
+        "tenantId": "tenant-globex-002",
+        "customerId": 1,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 62,
+        "tenantId": "tenant-globex-002",
+        "customerId": 1,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 63,
+        "tenantId": "tenant-globex-002",
+        "customerId": 1,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 67,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 68,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 69,
+        "tenantId": "tenant-globex-002",
+        "customerId": 1,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 70,
+        "tenantId": "tenant-globex-002",
+        "customerId": 1,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 71,
+        "tenantId": "tenant-globex-002",
+        "customerId": 1,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 72,
+        "tenantId": "tenant-globex-002",
+        "customerId": 1,
+        "amount": 1.0,
+        "internalCost": 0.5,
+        "status": "draft"
+      },
+      {
+        "id": 77,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      },
+      {
+        "id": 78,
+        "tenantId": "tenant-globex-002",
+        "customerId": 3,
+        "amount": 10.0,
+        "internalCost": 1.0,
+        "status": "draft"
+      }
+    ]
+  }
+}

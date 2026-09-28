@@ -1,0 +1,31 @@
+{
+  "probe_id": "header-spoof:/customers:erin.owner@tenant-globex-002:spoof=tenant-acme-001",
+  "actor": "erin.owner@tenant-globex-002",
+  "request": {
+    "method": "GET",
+    "path": "/customers",
+    "headers": {
+      "X-Tenant-Id": "tenant-acme-001"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "body": [
+      {
+        "id": 1,
+        "tenantId": "tenant-acme-001",
+        "name": "PWNED by tenant-globex-002 (A-02 exploit)",
+        "email": "pwned@example.invalid",
+        "phone": "000"
+      },
+      {
+        "id": 2,
+        "tenantId": "tenant-acme-001",
+        "name": "Southgate Retail (fictional)",
+        "email": "ap@southgate-fictional.example",
+        "phone": "+1-555-0102"
+      }
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "probe_id": "bola:/invoices/4:carol.accountant@tenant-acme-001",
+  "actor": "carol.accountant@tenant-acme-001",
+  "request": {
+    "method": "get",
+    "path": "/invoices/4",
+    "headers": {},
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "id": 4,
+      "tenantId": "tenant-globex-002",
+      "customerId": 4,
+      "amount": 900.0,
+      "internalCost": 300.0,
+      "status": "draft"
+    }
+  }
+}

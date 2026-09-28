@@ -1,0 +1,21 @@
+{
+  "probe_id": "bola:/invoices/3:bob.admin@tenant-acme-001",
+  "actor": "bob.admin@tenant-acme-001",
+  "request": {
+    "method": "get",
+    "path": "/invoices/3",
+    "headers": {},
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "id": 3,
+      "tenantId": "tenant-globex-002",
+      "customerId": 3,
+      "amount": 5600.0,
+      "internalCost": 2200.0,
+      "status": "sent"
+    }
+  }
+}

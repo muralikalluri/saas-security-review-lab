@@ -22,8 +22,9 @@ below in Quickstart; a short demo GIF is on the list before this goes live on Up
 
 ## Results
 
-Every number below is read straight from a committed, generated results file - never
-hand-typed (see each file for how to reproduce it).
+Every number below is checked against a committed, generated results file (see the
+Source column to reproduce it yourself) - this table itself is prose, so re-verify
+before trusting it over the file it cites.
 
 | Metric | Result | Source |
 |---|---|---|
@@ -37,11 +38,14 @@ hand-typed (see each file for how to reproduce it).
 | Findings by discovery method (25 total, A+B) | 7 harness · 6 tool · 12 manual | `scanners/results/attribution.md` |
 | Dependency scan | 3 manifests scanned (Trivy) | `scanners/results/dependency-scan/*.json` |
 
-The `targets/*/exploits/*.sh` scripts (12 per target) were run by hand against freshly-reset
-stacks during development and every one printed `FIXED`/exit 0 against the fixed target -
-that check isn't yet captured to a committed results file the way the rows above are, so
-re-run them yourself (`for f in targets/vibe-app-fixed/exploits/B-*.sh; do ./"$f"; done`)
-rather than trusting this sentence alone.
+`targets/vibe-app-fixed/exploits/B-*.sh` (12 scripts) were run by hand against a
+freshly-reset stack during development and every one printed `FIXED`/exit 0. Target A has
+no equivalent `tenant-api-fixed/exploits/` folder - its retest evidence is the
+isolation-tester run against the fixed stack (`124 probes, 0 leaks` above), not exploit
+scripts. `targets/tenant-api/exploits/A-*.sh` (13 scripts) only run against the vulnerable
+baseline. None of this is captured to a committed results file the way the rows above are,
+so re-run the B-series scripts yourself (`for f in targets/vibe-app-fixed/exploits/B-*.sh;
+do ./"$f"; done`) rather than trusting this sentence alone.
 
 ## Architecture
 

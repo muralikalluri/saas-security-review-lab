@@ -1,0 +1,27 @@
+{
+  "probe_id": "mass-assignment:/invoices:bob.admin@tenant-acme-001",
+  "actor": "bob.admin@tenant-acme-001",
+  "request": {
+    "method": "POST",
+    "path": "/invoices",
+    "headers": {},
+    "body": {
+      "tenantId": "tenant-globex-002",
+      "customerId": 1,
+      "amount": "1.00",
+      "internalCost": "0.50",
+      "status": "draft"
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "id": 80,
+      "tenantId": "tenant-globex-002",
+      "customerId": 1,
+      "amount": 1.0,
+      "internalCost": 0.5,
+      "status": "draft"
+    }
+  }
+}

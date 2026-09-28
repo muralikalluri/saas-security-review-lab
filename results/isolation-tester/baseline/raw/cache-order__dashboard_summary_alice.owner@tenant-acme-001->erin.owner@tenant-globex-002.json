@@ -1,0 +1,17 @@
+{
+  "probe_id": "cache-order:/dashboard/summary:alice.owner@tenant-acme-001->erin.owner@tenant-globex-002",
+  "actor": "erin.owner@tenant-globex-002",
+  "request": {
+    "method": "GET",
+    "path": "/dashboard/summary",
+    "headers": {},
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "totalAmount": 104772.0,
+      "source": "cache"
+    }
+  }
+}

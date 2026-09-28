@@ -1,0 +1,17 @@
+{
+  "probe_id": "role-restricted:/users/invite:carol.accountant@tenant-acme-001",
+  "actor": "carol.accountant@tenant-acme-001",
+  "request": {
+    "method": "POST",
+    "path": "/users/invite",
+    "headers": {},
+    "body": {
+      "email": "probe+accountant@tenant-acme-001.example",
+      "role": "admin"
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": 25
+  }
+}

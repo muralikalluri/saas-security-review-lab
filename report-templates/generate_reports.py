@@ -95,20 +95,25 @@ def evidence_locations(finding_id: str, attribution: dict) -> list[str]:
     return [loc.replace("/", "/​") for loc in out]
 
 
-def fix_commit(finding_id: str, target_dir: str) -> str | None:
-    """Short hash of the commit whose subject names this finding, under
-    target_dir - i.e. the actual `git diff` a reader can pull up as the
-    "exact fix (code diff)" SPEC.md §4 asks for, instead of embedding a
-    (potentially huge, 25-finding) diff inline in the report."""
+def fix_commits(finding_id: str, target_dir: str) -> list[str]:
+    """Short hashes of every commit whose subject names this finding, under
+    target_dir, oldest first - i.e. the actual `git diff`(s) a reader can pull
+    up as the "exact fix (code diff)" SPEC.md §4 asks for, instead of
+    embedding a (potentially huge, 25-finding) diff inline in the report.
+    Some findings needed a follow-up commit after the first one turned out to
+    be incomplete (see AI_FIX_PROMPTS.md's "Deviations" section for B-08) -
+    citing only the first match would point a reader at a diff that isn't the
+    whole fix, so this returns every match rather than the first one."""
     proc = subprocess.run(
         ["git", "log", "--oneline", "--reverse", "--", target_dir],
         cwd=REPO_ROOT, capture_output=True, text=True,
     )
+    hashes = []
     for line in proc.stdout.splitlines():
         short_hash, _, subject = line.partition(" ")
         if re.search(rf"\b{re.escape(finding_id)}\b", subject):
-            return short_hash
-    return None
+            hashes.append(short_hash)
+    return hashes
 
 
 def load_findings(target: str) -> list[dict]:
@@ -140,6 +145,29 @@ def parse_ai_fix_prompts() -> dict[str, str]:
         body = sections[i + 1].split("\n## ", 1)[0].strip()
         prompts[finding_id] = body
     return prompts
+
+
+def parse_deviations() -> dict[str, str]:
+    """{finding_id: deviation note} parsed from AI_FIX_PROMPTS.md's own
+    "Deviations during implementation" section, so the report surfaces every
+    place a milestone review found the pre-implementation prompt doesn't
+    accurately describe what actually got built or shipped an incomplete fix
+    - right next to the prompt text itself, not just in the source file."""
+    text = (REPO_ROOT / "targets" / "vibe-app-fixed" / "AI_FIX_PROMPTS.md").read_text()
+    marker = "## Deviations during implementation"
+    idx = text.find(marker)
+    if idx == -1:
+        return {}
+    section = text[idx + len(marker):].strip()
+    bullets = re.split(r"\n(?=- \*\*B-\d\d)", section)
+    deviations: dict[str, str] = {}
+    for bullet in bullets:
+        m = re.match(r"- \*\*(B-\d\d)", bullet)
+        if m:
+            body = re.sub(r"^- ", "", bullet.strip())
+            body = re.sub(r"\s*\n\s*", " ", body)  # unwrap the source's line-wrapping
+            deviations[m.group(1)] = body
+    return deviations
 
 
 def severity_counts(findings: list[dict]) -> dict[str, int]:
@@ -187,7 +215,7 @@ def render_evidence_bullets(locations: list[str]) -> str:
     return "\n".join(f"- `{loc}`" for loc in locations)
 
 
-def render_finding_full(f: dict, method: str, locations: list[str], commit: str | None, ai_prompt: str | None) -> str:
+def render_finding_full(f: dict, method: str, locations: list[str], commits: list[str], ai_prompt: str | None, deviation: str | None = None) -> str:
     lines = [
         f"### {f['id']} — {f['severity']}",
         "",
@@ -205,10 +233,14 @@ def render_finding_full(f: dict, method: str, locations: list[str], commit: str 
         "",
         f"**Exact fix.** {f['fix']}",
     ]
-    if commit:
-        lines.append(f"  Diff: `git show {commit}` (or `git diff {commit}~1..{commit}`).")
+    if commits:
+        diffs = ", ".join(f"`git show {c}`" for c in commits)
+        note = "" if len(commits) == 1 else " (a follow-up commit after the first fix was found incomplete)"
+        lines.append(f"  Diff: {diffs}{note}.")
     if ai_prompt:
         lines += ["", "**AI fix prompt** (copy-paste into Claude Code / Cursor):", "", "```text", ai_prompt, "```"]
+    if deviation:
+        lines += ["", f"> **Deviation from the prompt above, caught in review:** {deviation}"]
     lines.append("")
     return "\n".join(lines)
 
@@ -254,7 +286,8 @@ def generate_l4(attribution: dict) -> None:
     baseline_iso = isolation_summary(load_isolation_matrix("baseline"))
     fixed_iso = isolation_summary(load_isolation_matrix("fixed"))
     out_dir = REPO_ROOT / "sample-deliverables" / "L4-multitenant"
-    fixed_commit = fix_commit("A-01", "targets/tenant-api-fixed") or "see targets/tenant-api-fixed/README.md"
+    a_commits = fix_commits("A-01", "targets/tenant-api-fixed")
+    fixed_commit = a_commits[0] if a_commits else "see targets/tenant-api-fixed/README.md"
 
     top = [f for f in findings if f["severity"] in ("Critical", "High")]
     top_heading = f"## Top findings (Starter tier - {len(top)} of {len(findings)} total; see the Standard/Advanced tier report for the complete finding set)"
@@ -310,8 +343,11 @@ Same scope as the Starter-tier `ARCHITECTURE_REVIEW.md`, to the full finding set
 Method: manual review of every controller/repository call plus this lab's own
 **isolation-tester** harness (`isolation-tester/`), which mechanically proves
 cross-tenant/cross-role access failures rather than relying on manual testing alone -
-see `isolation-matrix.md` (this directory) for the full endpoint×actor matrix with
-per-probe evidence.
+see `isolation-matrix.md` (this directory) for the full endpoint×actor matrix. Every LEAK
+row's own request/response capture is committed under
+`results/isolation-tester/baseline/raw/` (the path is in that row's Evidence column) -
+DENIED/control-row captures are regenerated locally on each harness run rather than
+committed, to keep this repo small.
 
 **Harness run summary, baseline** (from `results/isolation-tester/baseline/isolation-matrix.json`):
 {baseline_iso['non_control_probes']} non-control probes across every declared endpoint × actor
@@ -330,7 +366,7 @@ classified LEAK**, confirming findings {', '.join(baseline_iso['confirmed_findin
 
 ## Findings
 
-{chr(10).join(render_finding_full(f, method_line(f['id'], attribution), evidence_locations(f['id'], attribution), fixed_commit, None) for f in findings)}
+{chr(10).join(render_finding_full(f, method_line(f['id'], attribution), evidence_locations(f['id'], attribution), a_commits, None) for f in findings)}
 
 ## Remediation plan
 
@@ -365,6 +401,7 @@ def generate_l5(attribution: dict) -> None:
     findings = load_findings("vibe-app")
     counts = severity_counts(findings)
     ai_prompts = parse_ai_fix_prompts()
+    deviations = parse_deviations()
     out_dir = REPO_ROOT / "sample-deliverables" / "L5-ai-app"
 
     gitleaks_tree = json.loads((REPO_ROOT / "scanners" / "results" / "gitleaks" / "vibe-app-fixed-tree.json").read_text())
@@ -373,17 +410,19 @@ def generate_l5(attribution: dict) -> None:
         .stdout.splitlines()
     )
     gitleaks_tracked_hits = len([f for f in gitleaks_tree if f["File"] in tracked])
+    rls_matrix_fixed = json.loads((REPO_ROOT / "scanners" / "results" / "rls-checker" / "vibe-app-fixed" / "rls-matrix.json").read_text())
+    rls_fail_count = len([r for r in rls_matrix_fixed if r["verdict"] == "FAIL"])
     semgrep_fixed = json.loads((REPO_ROOT / "scanners" / "results" / "semgrep" / "vibe-app-fixed.json").read_text())
     semgrep_fixed_hits = len(semgrep_fixed.get("results", []))
 
     # Top N by severity, dropping the lowest-priority findings for the
-    # Starter tier - computed, not a hardcoded "top 10 of 12".
+    # Starter tier - the drop is by rank, computed here, not a hand-picked ID
+    # set (so it stays correct if findings-data/vibe-app.yml's severities
+    # ever change).
     STARTER_DROP = 2
     rank = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3}
     ranked = sorted(findings, key=lambda f: (rank[f["severity"]], f["id"]))
-    dropped_ids = {"B-11", "B-12"}  # lowest severity, then narrowest-impact Medium
-    top_n = [f for f in ranked if f["id"] not in dropped_ids]
-    assert len(top_n) == len(findings) - STARTER_DROP, f"expected {len(findings) - STARTER_DROP}, got {len(top_n)}"
+    top_n = ranked[:-STARTER_DROP] if STARTER_DROP else ranked
 
     top_heading = f"## Top {len(top_n)} findings (of {len(findings)} total - the {STARTER_DROP} lowest-priority are in the Standard/Advanced tier report, `REVIEW_WITH_FIX_PLAN.md`)"
 
@@ -439,7 +478,7 @@ than inventing one.
 
 ## Findings
 
-{chr(10).join(render_finding_full(f, method_line(f['id'], attribution), evidence_locations(f['id'], attribution), fix_commit(f['id'], "targets/vibe-app-fixed"), ai_prompts.get(f['id'])) for f in findings)}
+{chr(10).join(render_finding_full(f, method_line(f['id'], attribution), evidence_locations(f['id'], attribution), fix_commits(f['id'], "targets/vibe-app-fixed"), ai_prompts.get(f['id']), deviations.get(f['id'])) for f in findings)}
 
 ## Remediation plan
 
@@ -453,7 +492,7 @@ finding" table and the per-finding commit references above), built by applying t
 fix prompts above, one commit per finding id (B-03/B-04/B-11 share one commit - see the
 B-11 entry above for why). Retest evidence, all from committed, generated results files:
 
-- RLS checker vs. the fixed stack: `scanners/results/rls-checker/vibe-app-fixed/rls-matrix.md` - 0 FAIL.
+- RLS checker vs. the fixed stack: `scanners/results/rls-checker/vibe-app-fixed/rls-matrix.md` - {rls_fail_count} FAIL.
 - gitleaks vs. the fixed module's current tree: `scanners/results/gitleaks/vibe-app-fixed-tree.md` -
   **{gitleaks_tracked_hits} hits in git-tracked files** (any hits are in the local, gitignored `.env` only).
 - Semgrep vs. the fixed module's current tree: `scanners/results/semgrep/vibe-app-fixed.json` -

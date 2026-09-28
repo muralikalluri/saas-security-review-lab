@@ -1,0 +1,19 @@
+{
+  "probe_id": "header-spoof:/dashboard/summary:erin.owner@tenant-globex-002:spoof=tenant-acme-001",
+  "actor": "erin.owner@tenant-globex-002",
+  "request": {
+    "method": "GET",
+    "path": "/dashboard/summary",
+    "headers": {
+      "X-Tenant-Id": "tenant-acme-001"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "totalAmount": 104772.0,
+      "source": "computed"
+    }
+  }
+}

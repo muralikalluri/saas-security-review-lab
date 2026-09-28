@@ -11,8 +11,11 @@ Same scope as the Starter-tier `ARCHITECTURE_REVIEW.md`, to the full finding set
 Method: manual review of every controller/repository call plus this lab's own
 **isolation-tester** harness (`isolation-tester/`), which mechanically proves
 cross-tenant/cross-role access failures rather than relying on manual testing alone -
-see `isolation-matrix.md` (this directory) for the full endpoint×actor matrix with
-per-probe evidence.
+see `isolation-matrix.md` (this directory) for the full endpoint×actor matrix. Every LEAK
+row's own request/response capture is committed under
+`results/isolation-tester/baseline/raw/` (the path is in that row's Evidence column) -
+DENIED/control-row captures are regenerated locally on each harness run rather than
+committed, to keep this repo small.
 
 **Harness run summary, baseline** (from `results/isolation-tester/baseline/isolation-matrix.json`):
 185 non-control probes across every declared endpoint × actor
@@ -52,7 +55,7 @@ classified LEAK**, confirming findings A-01, A-02, A-03, A-04, A-05, A-06, A-07 
 **Why it matters.** Any authenticated user from ANY tenant can read any other tenant's invoice by guessing or enumerating sequential ids - full cross-tenant financial data disclosure (line items, totals, customer names).
 
 **Exact fix.** Load by (id, tenant_id) together - either a repository method `findByIdAndTenantId`, or a Postgres RLS policy comparing tenant_id to a session-local `app.tenant_id` (see targets/tenant-api-fixed).
-  Diff: `git show 2a61da3` (or `git diff 2a61da3~1..2a61da3`).
+  Diff: `git show 2a61da3`.
 
 ### A-02 — Critical
 
@@ -69,7 +72,7 @@ classified LEAK**, confirming findings A-01, A-02, A-03, A-04, A-05, A-06, A-07 
 **Why it matters.** Any authenticated user from any tenant can OVERWRITE another tenant's customer record - not just read, but corrupt another company's data.
 
 **Exact fix.** Same fix pattern as A-01, applied to the write path: findByIdAndTenantId before the update.
-  Diff: `git show 2a61da3` (or `git diff 2a61da3~1..2a61da3`).
+  Diff: `git show 2a61da3`.
 
 ### A-03 — High
 
@@ -88,7 +91,7 @@ classified LEAK**, confirming findings A-01, A-02, A-03, A-04, A-05, A-06, A-07 
 **Why it matters.** A malicious or compromised client can create an invoice tagged as belonging to a DIFFERENT tenant, planting data in another company's account; the exposed internal fields leak cost/margin data never meant for the API consumer.
 
 **Exact fix.** Introduce request/response DTOs that never carry tenantId; derive tenantId server-side from the caller's own token, never from the request body.
-  Diff: `git show 2a61da3` (or `git diff 2a61da3~1..2a61da3`).
+  Diff: `git show 2a61da3`.
 
 ### A-04 — Critical
 
@@ -107,7 +110,7 @@ classified LEAK**, confirming findings A-01, A-02, A-03, A-04, A-05, A-06, A-07 
 **Why it matters.** Any caller can set this header to an arbitrary value and impersonate any tenant for every request - this is the root-cause enabler behind most of the OTHER cross-tenant findings, since it means "which tenant is this request for" is entirely client-controlled.
 
 **Exact fix.** Resolve tenant_id from the JWT's own verified claim only; ignore any client-supplied header for this purpose entirely.
-  Diff: `git show 2a61da3` (or `git diff 2a61da3~1..2a61da3`).
+  Diff: `git show 2a61da3`.
 
 ### A-05 — High
 
@@ -125,7 +128,7 @@ classified LEAK**, confirming findings A-01, A-02, A-03, A-04, A-05, A-06, A-07 
 **Why it matters.** An attacker can walk sequential export ids and download OTHER tenants' exported invoice reports - a bulk, offline variant of the same cross-tenant data leak as A-01.
 
 **Exact fix.** Check export ownership (tenant_id) before serving; use non-sequential (UUID) export ids as defence in depth.
-  Diff: `git show 2a61da3` (or `git diff 2a61da3~1..2a61da3`).
+  Diff: `git show 2a61da3`.
 
 ### A-06 — High
 
@@ -142,7 +145,7 @@ classified LEAK**, confirming findings A-01, A-02, A-03, A-04, A-05, A-06, A-07 
 **Why it matters.** A tenant can see another tenant's dashboard revenue/invoice totals - cross-tenant data leak via a shared cache, intermittent and timing-dependent (harder to notice than a direct API leak, easy to miss in a manual review).
 
 **Exact fix.** Key the cache entry on tenant_id (e.g. "summary:{tenantId}"), never a constant string.
-  Diff: `git show 2a61da3` (or `git diff 2a61da3~1..2a61da3`).
+  Diff: `git show 2a61da3`.
 
 ### A-07 — Medium
 
@@ -160,7 +163,7 @@ classified LEAK**, confirming findings A-01, A-02, A-03, A-04, A-05, A-06, A-07 
 **Why it matters.** A `viewer`-role user (meant to be read-only) can call the endpoint directly and invite new users into the tenant, including - depending on what role the request specifies - potentially privileged roles.
 
 **Exact fix.** Add @PreAuthorize (or equivalent) role enforcement server-side; never rely on UI-only hiding for an authorization decision.
-  Diff: `git show 2a61da3` (or `git diff 2a61da3~1..2a61da3`).
+  Diff: `git show 2a61da3`.
 
 ### A-08 — Medium
 
@@ -178,7 +181,7 @@ classified LEAK**, confirming findings A-01, A-02, A-03, A-04, A-05, A-06, A-07 
 **Why it matters.** A token issued for a different, unrelated audience/service can be replayed against this API; long-lived tokens with no rotation widen the window a stolen token stays useful.
 
 **Exact fix.** Validate the `aud` claim against this API's own identifier; issue short-lived access tokens with refresh rotation and reuse detection.
-  Diff: `git show 2a61da3` (or `git diff 2a61da3~1..2a61da3`).
+  Diff: `git show 2a61da3`.
 
 ### A-09 — High
 
@@ -195,7 +198,7 @@ classified LEAK**, confirming findings A-01, A-02, A-03, A-04, A-05, A-06, A-07 
 **Why it matters.** Anyone with read access to the source repository (including a former employee, a leaked backup, or a public-repo mistake) obtains credentials that can forge auth tokens or connect to the database directly.
 
 **Exact fix.** Read both from environment variables with no hardcoded fallback; the app should fail to start if they're unset, not silently use a default.
-  Diff: `git show 2a61da3` (or `git diff 2a61da3~1..2a61da3`).
+  Diff: `git show 2a61da3`.
 
 ### A-10 — Medium
 
@@ -213,7 +216,7 @@ classified LEAK**, confirming findings A-01, A-02, A-03, A-04, A-05, A-06, A-07 
 **Why it matters.** Login is brute-forceable at unlimited speed; export has no protection against being used as a resource-exhaustion or cross-tenant-enumeration accelerant (see A-05).
 
 **Exact fix.** Add per-identity rate limiting (e.g. Bucket4j) on both endpoints, with a sensible lockout/backoff policy.
-  Diff: `git show 2a61da3` (or `git diff 2a61da3~1..2a61da3`).
+  Diff: `git show 2a61da3`.
 
 ### A-11 — Medium
 
@@ -231,7 +234,7 @@ classified LEAK**, confirming findings A-01, A-02, A-03, A-04, A-05, A-06, A-07 
 **Why it matters.** No forensic trail exists for privilege changes or data exports after an incident; logged tokens are themselves a secondary credential leak (anyone with log access can replay them).
 
 **Exact fix.** Add an audit_log table written in the same transaction as the sensitive action; scrub Authorization header values from all log output.
-  Diff: `git show 2a61da3` (or `git diff 2a61da3~1..2a61da3`).
+  Diff: `git show 2a61da3`.
 
 ### A-12 — High
 
@@ -249,7 +252,7 @@ classified LEAK**, confirming findings A-01, A-02, A-03, A-04, A-05, A-06, A-07 
 **Why it matters.** Classic SQL injection via the sort parameter - and NOT meaningfully contained by the query's separately-parameterised WHERE tenant_id clause: a payload like a CASE WHEN subquery in the ORDER BY position turns this into a boolean-blind oracle that can read any table the database role can see, tenant-scoped or not, one bit at a time, and (depending on the JDBC driver's statement-batching config) may permit stacked statements. Treat this as full database read access, not a tenant-scoped leak.
 
 **Exact fix.** Whitelist `sort` against a fixed set of known column names server-side before it ever reaches the query; never string-concatenate user input into SQL.
-  Diff: `git show 2a61da3` (or `git diff 2a61da3~1..2a61da3`).
+  Diff: `git show 2a61da3`.
 
 ### A-13 — High
 
@@ -266,7 +269,7 @@ classified LEAK**, confirming findings A-01, A-02, A-03, A-04, A-05, A-06, A-07 
 **Why it matters.** Classic SSRF - an attacker can use this endpoint to probe internal network services or reach the cloud metadata endpoint (169.254.169.254) and potentially exfiltrate instance credentials.
 
 **Exact fix.** Require https, enforce a per-deployment host allow-list, reject IP literals and private/link-local ranges, disable redirects, and validate BEFORE the outbound call is made.
-  Diff: `git show 2a61da3` (or `git diff 2a61da3~1..2a61da3`).
+  Diff: `git show 2a61da3`.
 
 
 ## Remediation plan
