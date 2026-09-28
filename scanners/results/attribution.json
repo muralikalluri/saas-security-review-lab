@@ -154,6 +154,7 @@
   },
   "B-03": {
     "evidence_files": [
+      "targets/vibe-app-fixed/supabase/migrations/20240101000002_rls_and_storage.sql",
       "targets/vibe-app/supabase/migrations/20240101000002_rls_and_storage.sql"
     ],
     "method": "tool",
@@ -164,6 +165,7 @@
   },
   "B-04": {
     "evidence_files": [
+      "targets/vibe-app-fixed/supabase/migrations/20240101000002_rls_and_storage.sql",
       "targets/vibe-app/supabase/migrations/20240101000002_rls_and_storage.sql"
     ],
     "method": "tool",
@@ -209,6 +211,7 @@
   },
   "B-09": {
     "evidence_files": [
+      "targets/vibe-app-fixed/supabase/migrations/20240101000002_rls_and_storage.sql",
       "targets/vibe-app/components/AvatarUpload.tsx",
       "targets/vibe-app/supabase/migrations/20240101000002_rls_and_storage.sql"
     ],

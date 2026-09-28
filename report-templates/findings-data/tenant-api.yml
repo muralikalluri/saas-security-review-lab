@@ -139,7 +139,7 @@ findings:
     effort: M
   - id: A-11
     severity: Medium
-    owasp_api_2023: "API9:2023 - Improper Inventory Management"
+    owasp_api_2023: "N/A - the API Top 10 2023 has no logging/monitoring category; see OWASP 2021 mapping"
     owasp_2021: "A09:2021 - Security Logging and Monitoring Failures"
     what: "Role changes and exports are not audited at all, and application logs contain full bearer tokens."
     impact: >-
@@ -154,11 +154,14 @@ findings:
     owasp_2021: "A03:2021 - Injection"
     what: "The invoice search endpoint's `sort` query parameter is concatenated directly into the SQL ORDER BY clause."
     impact: >-
-      Classic SQL injection via the sort parameter. The blast radius stays
-      tenant-scoped in the current schema (the WHERE tenant_id clause is
-      parameterised separately), but this is a structural injection flaw
-      that would extend to full data access with any future query change
-      that reuses the same unsafe pattern.
+      Classic SQL injection via the sort parameter - and NOT meaningfully
+      contained by the query's separately-parameterised WHERE tenant_id
+      clause: a payload like a CASE WHEN subquery in the ORDER BY position
+      turns this into a boolean-blind oracle that can read any table the
+      database role can see, tenant-scoped or not, one bit at a time, and
+      (depending on the JDBC driver's statement-batching config) may permit
+      stacked statements. Treat this as full database read access, not a
+      tenant-scoped leak.
     fix: "Whitelist `sort` against a fixed set of known column names server-side before it ever reaches the query; never string-concatenate user input into SQL."
     effort: S
   - id: A-13

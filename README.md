@@ -27,13 +27,21 @@ hand-typed (see each file for how to reproduce it).
 
 | Metric | Result | Source |
 |---|---|---|
-| Target A findings seeded / closed in fixed mode | 13 / 13 | `results/isolation-tester/{baseline,fixed}/isolation-matrix.md` |
-| Isolation-tester probes vs. baseline | 7 findings confirmed as LEAK | `results/isolation-tester/baseline/isolation-matrix.md` |
-| Isolation-tester probes vs. fixed mode | 148 probes, **0 leaks**, exit 0 | `results/isolation-tester/fixed/isolation-matrix.md` |
-| Target B findings seeded / closed in fixed mode | 12 / 12 | `targets/vibe-app-fixed/README.md`, `targets/vibe-app-fixed/exploits/*.sh` |
+| Target A findings with a fix commit in `tenant-api-fixed` | 13 / 13 | `sample-deliverables/L4-multitenant/SECURITY_REVIEW_FULL.md`'s per-finding `Diff:` line (all 13 point to the same commit - M3 fixed Target A in one commit, not one-per-finding) |
+| Isolation-tester non-control probes vs. baseline | 185 probes, 7 findings (A-01..A-07) confirmed LEAK | `results/isolation-tester/baseline/isolation-matrix.md` |
+| Isolation-tester non-control probes vs. fixed mode | 124 probes, **0 leaks**, exit 0 | `results/isolation-tester/fixed/isolation-matrix.md` |
+| Target B findings with a fix commit in `vibe-app-fixed` | 12 / 12 | `sample-deliverables/L5-ai-app/REVIEW_WITH_FIX_PLAN.md`'s per-finding `Diff:` line - a real `git log` lookup per finding id, not asserted |
 | Supabase RLS checker vs. fixed mode | 0 FAIL | `scanners/results/rls-checker/vibe-app-fixed/rls-matrix.md` |
+| gitleaks vs. `vibe-app-fixed`'s tracked source | 0 hits | `scanners/results/gitleaks/vibe-app-fixed-tree.md` |
+| Semgrep vs. `vibe-app-fixed`'s tracked source | 0 findings | `scanners/results/semgrep/vibe-app-fixed.json` |
 | Findings by discovery method (25 total, A+B) | 7 harness · 6 tool · 12 manual | `scanners/results/attribution.md` |
 | Dependency scan | 3 manifests scanned (Trivy) | `scanners/results/dependency-scan/*.json` |
+
+The `targets/*/exploits/*.sh` scripts (12 per target) were run by hand against freshly-reset
+stacks during development and every one printed `FIXED`/exit 0 against the fixed target -
+that check isn't yet captured to a committed results file the way the rows above are, so
+re-run them yourself (`for f in targets/vibe-app-fixed/exploits/B-*.sh; do ./"$f"; done`)
+rather than trusting this sentence alone.
 
 ## Architecture
 
@@ -72,24 +80,41 @@ curl http://localhost:8184/actuator/health           # fixed
 cd targets/tenant-api/exploits && ./A-01-bola-invoice-by-id.sh   # reproduces the leak
 ```
 
-**Target B (vibe-app, baseline vs. fixed):**
+**Target B (vibe-app, baseline) - run in one terminal:**
 
 ```bash
-# baseline - .env is already committed here (that IS finding B-02)
-cd targets/vibe-app && supabase start && npm install && npm run dev &
-cd exploits && ./B-01-service-role-key-in-client-bundle.sh   # reproduces the leak
-
-# fixed - .env is gitignored, copy the template and fill in `supabase start`'s own output
-cd ../../vibe-app-fixed && cp .env.example .env && supabase start && npm install && npm run dev &
+# .env is already committed here (that IS finding B-02) - no copy step needed
+cd targets/vibe-app
+supabase start && npm install && npm run dev
 ```
 
-**Isolation-tester and scanners:**
+Then, in a second terminal, with the dev server above still running:
 
 ```bash
-cd isolation-tester && .venv/bin/python -m isolation_tester run \
+cd targets/vibe-app/exploits
+./B-01-service-role-key-in-client-bundle.sh   # reproduces the leak
+```
+
+**Target B (vibe-app-fixed) - a separate terminal, separate Supabase project:**
+
+```bash
+cd targets/vibe-app-fixed
+cp .env.example .env   # fill in ANON_KEY/SERVICE_ROLE_KEY from `supabase start`'s own output
+supabase start && npm install && npm run dev
+```
+
+**Isolation-tester** (its own `.venv` first: `cd isolation-tester && python3 -m venv .venv
+&& .venv/bin/pip install -r requirements.txt`, then from inside `isolation-tester/`):
+
+```bash
+.venv/bin/python -m isolation_tester run \
   --config config/tenant-api.baseline.yaml --openapi openapi/tenant-api.isolation.yaml \
   --run-name baseline --expect expectations/tenant-api.baseline.yaml
+```
 
+**Scanners** (from the repo root - a separate command, needs PyYAML, gitleaks and semgrep on PATH):
+
+```bash
 python3 scanners/verify_expected.py    # gitleaks + Semgrep + attribution, no live stack needed
 ```
 

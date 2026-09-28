@@ -18,7 +18,7 @@ found each thing.
    policy and `results/isolation-tester/baseline/isolation-matrix.md` for the
    actual, current output (generated, never hand-edited).
 
-2. **Tool-found** (`scanners/`, M5) - gitleaks (secrets, extended with two
+2. **Tool-found** (`scanners/`, M5) - gitleaks (secrets, extended with three
    custom rules for shapes the defaults miss), Semgrep (two custom rules:
    a NEXT_PUBLIC service-role pattern, a missing-ownership-check heuristic),
    a purpose-built Supabase RLS checker (queries the live Postgres catalog
@@ -49,12 +49,15 @@ change rather than trusting a stale copy.
 Target A's seeded findings are almost all "does this endpoint enforce tenant
 isolation" - exactly the shape the isolation-tester was purpose-built to
 replay mechanically across every endpoint × actor combination. Target B's
-findings are a mix of secrets/RLS-posture (which the M5 scanners catch) and
-business-logic authorization/idempotency/validation gaps (missing ownership
-check on a specific route, no signature verification, no replay protection) -
-these require understanding what the ROUTE is supposed to do, which is
-inherently a manual-review activity; a generic scanner has no way to know
-that `POST /api/bookings/[id]/cancel` is supposed to check `user_id`. This
+findings are a mix of secrets/RLS-posture (which the M5 scanners catch,
+including B-05's missing-ownership-check, which Semgrep's heuristic rule
+does structurally catch - see `scanners/results/attribution.md`) and
+business-logic gaps a generic scanner has no way to evaluate at all, because
+they require knowing what the endpoint is supposed to guarantee, not just
+what pattern its code matches: that a webhook handler is supposed to verify
+a signature before trusting its body (B-07), that a "process this event"
+handler is supposed to be idempotent against replay (B-08), that an uploaded
+file's declared type should be checked, not just its extension (B-09). This
 split is deliberate and is itself part of this lab's positioning (`SPEC.md`
 §6): the review isn't "just ran a scanner", and the reports say so with real
 tool-attribution data, not a marketing claim.
@@ -65,8 +68,15 @@ Both targets ship a fixed-mode counterpart (`targets/tenant-api-fixed`,
 `targets/vibe-app-fixed`) - a genuinely separate app/database/project, never
 the same process as the baseline, so the baseline stays intentionally
 vulnerable forever. Retest evidence is the SAME tooling re-run against the
-fixed instance: the isolation-tester's same config pointed at the fixed
-port (0 leaks, exit 0), the RLS checker against the fixed Supabase project
-(0 FAIL), and every `exploits/*.sh` script re-run against the fixed app
-(each one asserts the fixed outcome and exits non-zero if the old
-vulnerability reappears - not just prose claiming it's fixed).
+fixed instance, each writing its own committed, generated result (current
+numbers in each file, not repeated here by hand): the isolation-tester's
+same config pointed at the fixed port
+(`results/isolation-tester/fixed/isolation-matrix.md`), the RLS checker
+against the fixed Supabase project
+(`scanners/results/rls-checker/vibe-app-fixed/rls-matrix.md`), gitleaks and
+Semgrep against the fixed module's tree
+(`scanners/results/gitleaks/vibe-app-fixed-tree.md`,
+`scanners/results/semgrep/vibe-app-fixed.json`), and every `exploits/*.sh`
+script re-run against the fixed app (each one asserts the fixed outcome and
+exits non-zero if the old vulnerability reappears - not just prose claiming
+it's fixed).

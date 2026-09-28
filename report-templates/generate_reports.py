@@ -3,17 +3,21 @@
 
 Generates the 4 sample deliverables (SPEC.md section 1/5/7) from:
   - report-templates/findings-data/{tenant-api,vibe-app}.yml (per-finding
-    detail - severity, OWASP mapping, what/impact/fix/effort, AI fix prompt)
+    detail - severity, OWASP mapping, analyst prose)
   - scanners/results/attribution.json (tool/harness/manual, M5's own output)
-  - results/isolation-tester/baseline/isolation-matrix.json (Target A's
-    harness proof - counts computed here, never hand-typed)
+  - results/isolation-tester/{baseline,fixed}/isolation-matrix.json (Target
+    A's harness proof, both runs - counts computed here, never hand-typed)
+  - targets/vibe-app-fixed/AI_FIX_PROMPTS.md (parsed directly - the AI fix
+    prompt shown per L5 finding is a genuine excerpt of that file, not a
+    second, hand-copied version that can drift from it)
+  - `git log` (which commit actually fixed each finding)
 
 Per the repo's global CLAUDE.md ("never hand-type performance numbers...
 generate them from results files"): every COUNT in the generated reports
-(severity totals, tool-found vs manual totals, probe totals) is computed
-from these files by this script. The per-finding narrative (what/impact/
-fix) is analyst prose living in the YAML above, same as a real pentester's
-findings - that's the deliverable's actual content, not a "score".
+(severity totals, probe totals, tool-attribution totals) is computed from
+these files by this script. The per-finding narrative (what/impact/fix) is
+analyst prose living in the findings-data YAML, same as a real pentester's
+write-up - that's the deliverable's actual content, not a "score".
 
 Run: python3 report-templates/generate_reports.py
 Output: sample-deliverables/L4-multitenant/*.md, sample-deliverables/L5-ai-app/*.md
@@ -22,6 +26,7 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 from datetime import date
 from pathlib import Path
 
@@ -29,6 +34,11 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TEMPLATES = REPO_ROOT / "report-templates"
+# The "Prepared" date is generation time, like any report's letterhead date -
+# it's EXPECTED to differ across runs on different days; that's not a
+# reproducibility bug (everything else this script emits is byte-stable for
+# the same source files, which is what "generated, not hand-typed" is
+# actually about).
 TODAY = date.today().isoformat()
 
 SEVERITY_ORDER = ["Critical", "High", "Medium", "Low"]
@@ -40,28 +50,65 @@ BANNER = "> Deliberately insecure for demonstration and training. Do not deploy.
 SEEDED_FLAW_RE = re.compile(r"\b([AB]-\d\d)\s*\(seeded flaw")
 
 
-def evidence_citation(finding_id: str, attribution: dict) -> str:
-    files = attribution.get(finding_id, {}).get("evidence_files", [])
-    citations = []
+def target_root_for(finding_id: str) -> str:
+    return "targets/tenant-api/" if finding_id.startswith("A-") else "targets/vibe-app/"
+
+
+def evidence_locations(finding_id: str, attribution: dict) -> list[str]:
+    """[[relative-to-target-root path]:line, ...] - relative to the target's
+    own root (not the full repo path) to shorten these, PLUS a zero-width
+    space after every remaining "/" so tectonic/LaTeX can still wrap a long
+    one (Java's package-per-directory paths, e.g. tenant-api's
+    `src/main/java/com/ledgerlite/tenantapi/invoice/InvoiceController.java`,
+    are long enough on their own to overflow the page margin by 200pt+ even
+    after shortening - measured directly: shortening the path ALONE was not
+    sufficient, a milestone review caught real overflow in the rendered PDF
+    even after an earlier version of this function shortened paths without
+    also keeping the zero-width-space break points)."""
+    root = target_root_for(finding_id)
+    all_files = attribution.get(finding_id, {}).get("evidence_files", [])
+    # attribution.json's evidence scan runs over all of targets/ - once
+    # targets/vibe-app-fixed/ existed as a copy that (deliberately) still
+    # carries the SAME "ID (seeded flaw" comment in its own untouched copy
+    # of the original migrations (documenting what WAS wrong, even after a
+    # later migration fixes it), that scan started returning both the
+    # baseline's evidence file AND the fixed module's copy of it. This
+    # report is about the baseline - keep only evidence under the
+    # baseline's own root.
+    files = [f for f in all_files if f.startswith(root)]
+    out = []
     for rel_path in files:
         path = REPO_ROOT / rel_path
-        try:
-            text = path.read_text(errors="ignore")
-        except OSError:
-            citations.append(rel_path)
-            continue
         line_no = None
-        for i, line in enumerate(text.splitlines(), start=1):
-            m = SEEDED_FLAW_RE.search(line)
-            if m and m.group(1) == finding_id:
-                line_no = i
-                break
-        citations.append(f"{rel_path}:{line_no}" if line_no else rel_path)
-    joined = "; ".join(citations) if citations else "see targets/*/exploits/ for reproduction steps"
-    # Long paths in a monospace span are one unbroken "word" to a PDF
-    # renderer - insert a zero-width space after each path separator so
-    # tectonic can wrap instead of overflowing the page margin.
-    return joined.replace("/", "/​")
+        try:
+            for i, line in enumerate(path.read_text(errors="ignore").splitlines(), start=1):
+                m = SEEDED_FLAW_RE.search(line)
+                if m and m.group(1) == finding_id:
+                    line_no = i
+                    break
+        except OSError:
+            pass
+        short = rel_path.removeprefix(root)
+        out.append(f"{short}:{line_no}" if line_no else short)
+    if not out:
+        return ["see targets/*/exploits/ for reproduction steps"]
+    return [loc.replace("/", "/​") for loc in out]
+
+
+def fix_commit(finding_id: str, target_dir: str) -> str | None:
+    """Short hash of the commit whose subject names this finding, under
+    target_dir - i.e. the actual `git diff` a reader can pull up as the
+    "exact fix (code diff)" SPEC.md §4 asks for, instead of embedding a
+    (potentially huge, 25-finding) diff inline in the report."""
+    proc = subprocess.run(
+        ["git", "log", "--oneline", "--reverse", "--", target_dir],
+        cwd=REPO_ROOT, capture_output=True, text=True,
+    )
+    for line in proc.stdout.splitlines():
+        short_hash, _, subject = line.partition(" ")
+        if re.search(rf"\b{re.escape(finding_id)}\b", subject):
+            return short_hash
+    return None
 
 
 def load_findings(target: str) -> list[dict]:
@@ -73,8 +120,26 @@ def load_attribution() -> dict:
     return json.loads((REPO_ROOT / "scanners" / "results" / "attribution.json").read_text())
 
 
-def load_isolation_matrix() -> dict:
-    return json.loads((REPO_ROOT / "results" / "isolation-tester" / "baseline" / "isolation-matrix.json").read_text())
+def load_isolation_matrix(run: str) -> dict:
+    return json.loads((REPO_ROOT / "results" / "isolation-tester" / run / "isolation-matrix.json").read_text())
+
+
+def parse_ai_fix_prompts() -> dict[str, str]:
+    """{finding_id: prompt body} parsed directly from
+    targets/vibe-app-fixed/AI_FIX_PROMPTS.md - genuinely the same text, not
+    a second hand-copied version that can drift from it (a milestone review
+    caught exactly that drift in an earlier version of this script, down to
+    a prompt naming a function from the FIXED code instead of the one that
+    existed in the baseline when the prompt was supposedly written)."""
+    text = (REPO_ROOT / "targets" / "vibe-app-fixed" / "AI_FIX_PROMPTS.md").read_text()
+    sections = re.split(r"^## (B-\d\d) — .*$", text, flags=re.MULTILINE)
+    # re.split with a capturing group yields [prefix, id, body, id, body, ...]
+    prompts = {}
+    for i in range(1, len(sections), 2):
+        finding_id = sections[i]
+        body = sections[i + 1].split("\n## ", 1)[0].strip()
+        prompts[finding_id] = body
+    return prompts
 
 
 def severity_counts(findings: list[dict]) -> dict[str, int]:
@@ -118,14 +183,21 @@ def isolation_summary(matrix: dict) -> dict:
     }
 
 
-def render_finding_full(f: dict, method: str, evidence: str, include_ai_prompt: bool) -> str:
+def render_evidence_bullets(locations: list[str]) -> str:
+    return "\n".join(f"- `{loc}`" for loc in locations)
+
+
+def render_finding_full(f: dict, method: str, locations: list[str], commit: str | None, ai_prompt: str | None) -> str:
     lines = [
         f"### {f['id']} — {f['severity']}",
         "",
         f"**OWASP:** {f['owasp_2021']} · {f['owasp_api_2023']}  ",
         f"**Effort to fix:** {f['effort']}  ",
-        f"**How found:** {method}  ",
-        f"**Evidence:** `{evidence}`",
+        f"**How found:** {method}",
+        "",
+        "**Evidence:**",
+        "",
+        render_evidence_bullets(locations),
         "",
         f"**What's wrong.** {f['what']}",
         "",
@@ -133,17 +205,19 @@ def render_finding_full(f: dict, method: str, evidence: str, include_ai_prompt: 
         "",
         f"**Exact fix.** {f['fix']}",
     ]
-    if include_ai_prompt and f.get("ai_fix_prompt"):
-        lines += ["", "**AI fix prompt** (copy-paste into Claude Code / Cursor):", "", "```text", f["ai_fix_prompt"].strip(), "```"]
+    if commit:
+        lines.append(f"  Diff: `git show {commit}` (or `git diff {commit}~1..{commit}`).")
+    if ai_prompt:
+        lines += ["", "**AI fix prompt** (copy-paste into Claude Code / Cursor):", "", "```text", ai_prompt, "```"]
     lines.append("")
     return "\n".join(lines)
 
 
-def render_finding_brief(f: dict, method: str, evidence: str) -> str:
+def render_finding_brief(f: dict, method: str, locations: list[str]) -> str:
     return (
         f"### {f['id']} — {f['severity']}\n\n"
-        f"**OWASP:** {f['owasp_2021']} · {f['owasp_api_2023']} · **How found:** {method}  \n"
-        f"**Evidence:** `{evidence}`\n\n"
+        f"**OWASP:** {f['owasp_2021']} · {f['owasp_api_2023']} · **How found:** {method}\n\n"
+        f"**Evidence:**\n\n{render_evidence_bullets(locations)}\n\n"
         f"{f['what']} {f['impact']}\n\n"
         f"**Fix:** {f['fix']}\n"
     )
@@ -177,11 +251,13 @@ def write(path: Path, content: str) -> None:
 def generate_l4(attribution: dict) -> None:
     findings = load_findings("tenant-api")
     counts = severity_counts(findings)
-    matrix = load_isolation_matrix()
-    iso = isolation_summary(matrix)
+    baseline_iso = isolation_summary(load_isolation_matrix("baseline"))
+    fixed_iso = isolation_summary(load_isolation_matrix("fixed"))
     out_dir = REPO_ROOT / "sample-deliverables" / "L4-multitenant"
+    fixed_commit = fix_commit("A-01", "targets/tenant-api-fixed") or "see targets/tenant-api-fixed/README.md"
 
     top = [f for f in findings if f["severity"] in ("Critical", "High")]
+    top_heading = f"## Top findings (Starter tier - {len(top)} of {len(findings)} total; see the Standard/Advanced tier report for the complete finding set)"
 
     arch = f"""# Architecture Review — LedgerLite (fictional multi-tenant invoicing API)
 
@@ -208,10 +284,9 @@ mass-assigned tenant id, then classifies each response as LEAK or DENIED.
 - **Data access:** direct repository calls by primary key, with tenant scoping left to
   each call site rather than enforced centrally (no Postgres RLS in the baseline).
 
-## Top findings (Starter tier - {len(top)} of {len(findings)} total; see the Standard/Advanced
-tier report for the complete finding set)
+{top_heading}
 
-{chr(10).join(render_finding_brief(f, method_line(f['id'], attribution), evidence_citation(f['id'], attribution)) for f in top)}
+{chr(10).join(render_finding_brief(f, method_line(f['id'], attribution), evidence_locations(f['id'], attribution)) for f in top)}
 
 ## Risk summary
 
@@ -238,14 +313,16 @@ cross-tenant/cross-role access failures rather than relying on manual testing al
 see `isolation-matrix.md` (this directory) for the full endpoint×actor matrix with
 per-probe evidence.
 
-**Harness run summary** (from `results/isolation-tester/baseline/isolation-matrix.json`,
-generated by the harness itself - see that file's own header for how to reproduce):
-{iso['non_control_probes']} non-control probes across every declared endpoint × actor
-combination ({iso['control_probes']} additional positive-control probes confirmed
-legitimate owner access still works), preflight {'OK' if iso['preflight_ok'] else 'FAILED'},
-positive controls {'OK' if iso['controls_ok'] else 'FAILED'}. **{iso['leak_count']} probes
-classified LEAK**, confirming findings {', '.join(iso['confirmed_findings'])}
-mechanically, not just by manual inspection.
+**Harness run summary, baseline** (from `results/isolation-tester/baseline/isolation-matrix.json`):
+{baseline_iso['non_control_probes']} non-control probes across every declared endpoint × actor
+combination ({baseline_iso['control_probes']} additional positive-control probes confirmed
+legitimate owner access still works), preflight {'OK' if baseline_iso['preflight_ok'] else 'FAILED'},
+positive controls {'OK' if baseline_iso['controls_ok'] else 'FAILED'}. **{baseline_iso['leak_count']} probes
+classified LEAK**, confirming findings {', '.join(baseline_iso['confirmed_findings'])} mechanically.
+
+**Harness run summary, fixed** (from `results/isolation-tester/fixed/isolation-matrix.json`):
+{fixed_iso['non_control_probes']} non-control probes ({fixed_iso['control_probes']} positive controls),
+**{fixed_iso['leak_count']} probes classified LEAK**, exit code **{fixed_iso['exit_code']}**.
 
 ## Risk summary
 
@@ -253,7 +330,7 @@ mechanically, not just by manual inspection.
 
 ## Findings
 
-{chr(10).join(render_finding_full(f, method_line(f['id'], attribution), evidence_citation(f['id'], attribution), include_ai_prompt=False) for f in findings)}
+{chr(10).join(render_finding_full(f, method_line(f['id'], attribution), evidence_locations(f['id'], attribution), fixed_commit, None) for f in findings)}
 
 ## Remediation plan
 
@@ -262,12 +339,13 @@ mechanically, not just by manual inspection.
 ## Retest notes
 
 `targets/tenant-api-fixed` is this repo's own retest target: a separate Maven
-module/database/Keycloak realm implementing every fix above (see its own README's
-"What changed, per finding" table). Re-running the SAME isolation-tester config against
-it (`--run-name fixed`, pointed at the fixed instance's port) is the retest evidence -
-see `results/isolation-tester/fixed/isolation-matrix.md`: **0 leaks, exit code 0** at
-last run (never trust this report's prose over that generated file - regenerate and
-compare before relying on this for a real retest sign-off).
+module/database/Keycloak realm implementing every fix above in commit `{fixed_commit}`
+(`git show {fixed_commit}`; see also its own README's "What changed, per finding" table).
+Re-running the SAME isolation-tester config against it is the retest evidence - see the
+"Harness run summary, fixed" line above, computed from
+`results/isolation-tester/fixed/isolation-matrix.json` (never trust this report's prose
+over that generated file - regenerate and compare before relying on this for a real
+retest sign-off).
 """
     write(out_dir / "SECURITY_REVIEW_FULL.md", full)
 
@@ -286,16 +364,30 @@ compare before relying on this for a real retest sign-off).
 def generate_l5(attribution: dict) -> None:
     findings = load_findings("vibe-app")
     counts = severity_counts(findings)
+    ai_prompts = parse_ai_fix_prompts()
     out_dir = REPO_ROOT / "sample-deliverables" / "L5-ai-app"
 
-    # Top 10 of 12: drop the lowest-priority two (Low, then the narrowest Medium).
+    gitleaks_tree = json.loads((REPO_ROOT / "scanners" / "results" / "gitleaks" / "vibe-app-fixed-tree.json").read_text())
+    tracked = set(
+        subprocess.run(["git", "ls-files", "targets/vibe-app-fixed"], cwd=REPO_ROOT, capture_output=True, text=True)
+        .stdout.splitlines()
+    )
+    gitleaks_tracked_hits = len([f for f in gitleaks_tree if f["File"] in tracked])
+    semgrep_fixed = json.loads((REPO_ROOT / "scanners" / "results" / "semgrep" / "vibe-app-fixed.json").read_text())
+    semgrep_fixed_hits = len(semgrep_fixed.get("results", []))
+
+    # Top N by severity, dropping the lowest-priority findings for the
+    # Starter tier - computed, not a hardcoded "top 10 of 12".
+    STARTER_DROP = 2
     rank = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3}
     ranked = sorted(findings, key=lambda f: (rank[f["severity"]], f["id"]))
-    dropped_ids = {"B-11", "B-12"}
-    top10 = [f for f in ranked if f["id"] not in dropped_ids]
-    assert len(top10) == 10, f"expected 10, got {len(top10)}"
+    dropped_ids = {"B-11", "B-12"}  # lowest severity, then narrowest-impact Medium
+    top_n = [f for f in ranked if f["id"] not in dropped_ids]
+    assert len(top_n) == len(findings) - STARTER_DROP, f"expected {len(findings) - STARTER_DROP}, got {len(top_n)}"
 
-    scan = f"""# Risk Scan — Top 10 — StudioBook (fictional AI-built class-booking app)
+    top_heading = f"## Top {len(top_n)} findings (of {len(findings)} total - the {STARTER_DROP} lowest-priority are in the Standard/Advanced tier report, `REVIEW_WITH_FIX_PLAN.md`)"
+
+    scan = f"""# Risk Scan — Top {len(top_n)} — StudioBook (fictional AI-built class-booking app)
 
 {BANNER}
 
@@ -311,17 +403,16 @@ row-level-security checker, Trivy dependency scan) plus manual review and live
 exploit-script proof (`targets/vibe-app/exploits/*.sh`) for everything the automated
 tools structurally can't see (business-logic races, RLS-adjacent authorization gaps).
 
-## Top 10 findings (of 12 total - the 2 lowest-priority are in the Standard/Advanced
-tier report, `REVIEW_WITH_FIX_PLAN.md`)
+{top_heading}
 
-{chr(10).join(render_finding_brief(f, method_line(f['id'], attribution), evidence_citation(f['id'], attribution)) for f in top10)}
+{chr(10).join(render_finding_brief(f, method_line(f['id'], attribution), evidence_locations(f['id'], attribution)) for f in top_n)}
 
-## Risk summary (all {sum(counts.values())} findings; top 10 by severity detailed above)
+## Risk summary (all {sum(counts.values())} findings; top {len(top_n)} by severity detailed above)
 
 {risk_table(counts)}
 
-Full findings, evidence, remediation plan and retest notes (including B-11 and B-12):
-`REVIEW_WITH_FIX_PLAN.md` (Standard/Advanced tier).
+Full findings, evidence, remediation plan and retest notes: `REVIEW_WITH_FIX_PLAN.md`
+(Standard/Advanced tier).
 """
     write(out_dir / "RISK_SCAN_TOP10.md", scan)
 
@@ -334,11 +425,13 @@ Full findings, evidence, remediation plan and retest notes (including B-11 and B
 
 ## Scope & method
 
-Same scope as `RISK_SCAN_TOP10.md`, extended to all 12 findings, with the
-differentiator this listing promises: an **AI fix prompt** per finding - the literal
-prompt used (via `targets/vibe-app-fixed/AI_FIX_PROMPTS.md`) to produce this repo's
-own fixed branch, not a hypothetical one written for the report. Every prompt below is
-copy-paste-ready for Claude Code, Cursor, or similar.
+Same scope as `RISK_SCAN_TOP10.md`, extended to all {len(findings)} findings, with the
+differentiator this listing promises: an **AI fix prompt** per finding, parsed directly
+from `targets/vibe-app-fixed/AI_FIX_PROMPTS.md` (the file written before any fix, then
+actually used to build this repo's own fixed branch) - not re-typed into this report,
+so it can't silently drift from what was really run. B-11 has no separate prompt (its
+fix landed inside the B-04 commit - see that entry below); its excerpt says so rather
+than inventing one.
 
 ## Risk summary
 
@@ -346,7 +439,7 @@ copy-paste-ready for Claude Code, Cursor, or similar.
 
 ## Findings
 
-{chr(10).join(render_finding_full(f, method_line(f['id'], attribution), evidence_citation(f['id'], attribution), include_ai_prompt=True) for f in findings)}
+{chr(10).join(render_finding_full(f, method_line(f['id'], attribution), evidence_locations(f['id'], attribution), fix_commit(f['id'], "targets/vibe-app-fixed"), ai_prompts.get(f['id'])) for f in findings)}
 
 ## Remediation plan
 
@@ -356,12 +449,19 @@ copy-paste-ready for Claude Code, Cursor, or similar.
 
 `targets/vibe-app-fixed` is this repo's own retest target - a separate Next.js app and
 Supabase project implementing every fix above (see its README's "What changed, per
-finding" table), built by literally applying the AI fix prompts above, one commit per
-finding id. Retest evidence: every script in `targets/vibe-app-fixed/exploits/` reports
-FIXED with exit 0 against a freshly-reset stack; the M5 RLS checker reports 0 FAIL; M5's
-gitleaks/Semgrep scans are clean on the fixed app's tracked source (see
-`scanners/results/` for the generated, current state of all of this - never trust this
-report's prose over those files).
+finding" table and the per-finding commit references above), built by applying the AI
+fix prompts above, one commit per finding id (B-03/B-04/B-11 share one commit - see the
+B-11 entry above for why). Retest evidence, all from committed, generated results files:
+
+- RLS checker vs. the fixed stack: `scanners/results/rls-checker/vibe-app-fixed/rls-matrix.md` - 0 FAIL.
+- gitleaks vs. the fixed module's current tree: `scanners/results/gitleaks/vibe-app-fixed-tree.md` -
+  **{gitleaks_tracked_hits} hits in git-tracked files** (any hits are in the local, gitignored `.env` only).
+- Semgrep vs. the fixed module's current tree: `scanners/results/semgrep/vibe-app-fixed.json` -
+  **{semgrep_fixed_hits} findings** (the B-01/B-05 patterns this ruleset targets are both gone).
+- Every script in `targets/vibe-app-fixed/exploits/` was run by hand against a freshly-reset
+  stack during development and printed `FIXED` with exit 0 - not yet captured to a
+  committed results file (unlike the three checks above); re-run them yourself to confirm
+  before relying on this line for a real retest sign-off.
 """
     write(out_dir / "REVIEW_WITH_FIX_PLAN.md", review)
 

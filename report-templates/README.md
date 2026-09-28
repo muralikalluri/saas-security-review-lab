@@ -56,17 +56,29 @@ attribution.json) - never hand-edit the generated `.md` files directly.
 
 ```bash
 cd sample-deliverables/L4-multitenant
+pandoc ARCHITECTURE_REVIEW.md -o ARCHITECTURE_REVIEW.pdf \
+  --pdf-engine=tectonic -V geometry:margin=1in -V colorlinks=true --toc
 pandoc SECURITY_REVIEW_FULL.md -o SECURITY_REVIEW_FULL.pdf \
   --pdf-engine=tectonic -V geometry:margin=1in -V colorlinks=true --toc
 
 cd ../L5-ai-app
+pandoc RISK_SCAN_TOP10.md -o RISK_SCAN_TOP10.pdf \
+  --pdf-engine=tectonic -V geometry:margin=1in -V colorlinks=true --toc
 pandoc REVIEW_WITH_FIX_PLAN.md -o REVIEW_WITH_FIX_PLAN.pdf \
   --pdf-engine=tectonic -V geometry:margin=1in -V colorlinks=true --toc
 ```
 
+Evidence citations get a zero-width space (U+200B) inserted after every `/` -
+pandoc turns this into a real `\hspace{0pt}` break point in the generated
+LaTeX, letting `tectonic` wrap even a long, deeply-nested Java package path
+instead of overflowing the page margin (this was a real, measured bug during
+authoring - the very first version of this shortened evidence paths but
+dropped the break-point insertion, and still overflowed by 200pt+; both are
+needed together).
+
 `tectonic` (a small, self-contained LaTeX engine - `brew install tectonic`) is
 pandoc's PDF engine here instead of a full TeX distribution, which would be
-several GB. Both PDFs are committed alongside their source `.md` for the
+several GB. All 4 PDFs are committed alongside their source `.md` for the
 portfolio - regenerate them with the same command after any content change
 rather than hand-editing the PDF.
 

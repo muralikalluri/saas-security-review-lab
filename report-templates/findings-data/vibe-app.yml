@@ -3,266 +3,153 @@
 # deliverables. Severity is genuine analyst judgement; everything that's a
 # COUNT or SUMMARY STAT in the generated reports is computed FROM this file
 # plus the actual results files (attribution.json), never hand-typed into
-# the report body itself (CLAUDE.md). `ai_fix_prompt` is copied verbatim
-# from targets/vibe-app-fixed/AI_FIX_PROMPTS.md - the same prompt that was
-# actually used to produce the fixed branch, not a fresh one written for
-# the report.
+# the report body itself (CLAUDE.md). The AI fix prompt shown per finding in
+# the generated report is parsed directly from
+# targets/vibe-app-fixed/AI_FIX_PROMPTS.md at generation time (see
+# generate_reports.py's parse_ai_fix_prompts()) - NOT duplicated here. An
+# earlier version of this file DID duplicate each prompt here by hand, and
+# it drifted from the real prompts (a milestone review caught this: one
+# entry even named a function from the fixed code that didn't exist yet
+# when the real prompt was supposedly written). Single source of truth now.
+
 findings:
-  - id: B-01
-    severity: Critical
-    owasp_api_2023: "API8:2023 - Security Misconfiguration"
-    owasp_2021: "A05:2021 - Security Misconfiguration"
-    what: >-
-      The Supabase service-role key (bypasses every RLS policy in the
-      database) is read from a `NEXT_PUBLIC_`-prefixed environment
-      variable inside a client component.
-    impact: >-
-      Next.js inlines every `NEXT_PUBLIC_*` variable into the JavaScript
-      bundle shipped to every visitor's browser, logged in or not. Anyone
-      who views page source gets a credential that can read or write ANY
-      row in the database, unrestricted.
-    fix: >-
-      Move the query behind a server-only route using the service-role
-      client correctly (never in a "use client" component); delete the
-      NEXT_PUBLIC_ variable entirely.
-    effort: S
-    ai_fix_prompt: |
-      In targets/vibe-app-fixed/components/AdminUserList.tsx, remove the
-      Supabase client built directly in this "use client" component from a
-      NEXT_PUBLIC_-prefixed service-role var. Move the user-listing query
-      into a new server-only route that uses lib/supabase/admin.ts's
-      createAdminClient() (already server-only-guarded), and have this
-      component fetch from that route instead. Remove
-      NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY from .env/.env.example entirely
-      - only the non-prefixed SUPABASE_SERVICE_ROLE_KEY should exist.
-      After the change, `npm run build` then `grep -r "service_role"
-      .next/static` must find nothing.
-  - id: B-02
-    severity: Critical
-    owasp_api_2023: "API8:2023 - Security Misconfiguration"
-    owasp_2021: "A02:2021 - Cryptographic Failures"
-    what: "A Stripe secret key is hardcoded directly in a server file, and .env (holding the same value plus other credentials) is committed to the repository."
-    impact: >-
-      Anyone with read access to the repository - a contractor, a leaked
-      backup, an over-shared CI log - obtains a live-shaped credential that
-      can act as the application against Stripe's API.
-    fix: "Read the secret from an environment variable with no hardcoded fallback (fail to start if unset); add .env to .gitignore and stop committing it."
-    effort: S
-    ai_fix_prompt: |
-      In targets/vibe-app-fixed/lib/stripe.ts, remove the hardcoded
-      STRIPE_SECRET_KEY literal. Read it from
-      process.env.STRIPE_SECRET_KEY with no fallback string, and throw at
-      import time if it's unset, so the app fails to start rather than
-      silently running with no key. Add .env to
-      targets/vibe-app-fixed/.gitignore (remove the header comment there
-      that says it deliberately isn't listed) and delete the committed
-      targets/vibe-app-fixed/.env from the repo - .env.example is the only
-      committed template from here on. After the change, `git ls-files
-      targets/vibe-app-fixed | grep -x targets/vibe-app-fixed/.env` must
-      find nothing.
-  - id: B-03
-    severity: Critical
-    owasp_api_2023: "API1:2023 - Broken Object Level Authorization"
-    owasp_2021: "A01:2021 - Broken Access Control"
-    what: "Row-level security is never enabled on the bookings table at all."
-    impact: >-
-      Any authenticated user can read, update, or delete EVERY other
-      user's bookings directly through Supabase's own REST API, completely
-      bypassing the Next.js app's own routes and any checks they perform.
-    fix: "Enable RLS with an owner/admin SELECT policy; explicitly revoke INSERT/UPDATE/DELETE from `authenticated` - every write must go through a service-role route or RPC, since a policy alone doesn't override Supabase's default table-level grants."
-    effort: M
-    ai_fix_prompt: |
-      Add a new migration in targets/vibe-app-fixed/supabase/migrations/
-      (don't edit the baseline migrations) that enables RLS on
-      public.bookings and adds a SELECT policy scoped to
-      `user_id = auth.uid() OR public.is_admin()`. Revoke INSERT, UPDATE,
-      DELETE on bookings from authenticated - all writes happen
-      server-side via the service-role client or an RPC. After the change,
-      scanners/rls-checker/rls_checker.py must report 0 FAIL for bookings.
-  - id: B-04
-    severity: Critical
-    owasp_api_2023: "API3:2023 - Broken Object Property Level Authorization"
-    owasp_2021: "A01:2021 - Broken Access Control"
-    what: "RLS IS enabled on profiles, but the SELECT policy is `using (true)` - equivalent to no policy at all for reads."
-    impact: "Every authenticated user can read every other user's profile row, including email and phone number - a full customer-PII leak."
-    fix: "Replace the policy with `id = auth.uid() OR is_admin()`; add a SECURITY DEFINER is_admin() helper to avoid the self-referential-policy recursion a plain subquery on profiles would hit."
-    effort: S
-    ai_fix_prompt: |
-      In the same new migration as B-03 (or a second one), replace
-      profiles_select_any_row_b04's `using (true)` with
-      `using (id = auth.uid() OR public.is_admin())`. Create
-      public.is_admin() as a SECURITY DEFINER, STABLE, search_path-pinned
-      function reading profiles.role for auth.uid(). This will make
-      app/studio/members/page.tsx and app/studio/dashboard/page.tsx's
-      member/booking queries silently return empty - fix both in this same
-      commit: members/page.tsx should select only {id, full_name} via the
-      service-role client (this is also the B-11 fix); dashboard queries
-      should read via the service-role client (the page is already
-      admin-gated). After the change, scanners/rls-checker/rls_checker.py
-      must report 0 FAIL for profiles, and both pages must still render
-      real data for an admin.
-  - id: B-05
-    severity: High
-    owasp_api_2023: "API1:2023 - Broken Object Level Authorization"
-    owasp_2021: "A01:2021 - Broken Access Control"
-    what: "POST /api/bookings/{id}/cancel checks that the caller is logged in, but never checks that the booking being cancelled belongs to them."
-    impact: "Any authenticated user can cancel any OTHER user's booking by id - a denial-of-service against a specific victim's reservations."
-    fix: "Filter the update on id AND user_id (AND status, to make a second cancel a no-op); return the same 404 whether the booking belongs to someone else or doesn't exist."
-    effort: S
-    ai_fix_prompt: |
-      In app/api/bookings/[id]/cancel/route.ts, validate params.id is a
-      UUID (400 if not), then update via the service-role client with
-      .eq("id", id).eq("user_id", user.id).eq("status", "confirmed") -
-      return 404 if no row was affected, whether the booking belongs to
-      someone else or doesn't exist. After the change,
-      exploits/B-05-cancel-any-booking.sh (run against this fixed stack)
-      must show liam getting a 404 and maya's booking still confirmed.
-  - id: B-06
-    severity: High
-    owasp_api_2023: "API5:2023 - Broken Function Level Authorization"
-    owasp_2021: "A01:2021 - Broken Access Control"
-    what: "The admin-only 'grant credits' page hides its form from non-admins in the UI, but the route behind it never re-checks the caller's role server-side."
-    impact: "Any authenticated user can call the route directly and grant themselves - or anyone - unlimited free credits, bypassing the studio's entire paid-credit model."
-    fix: "Add a shared requireAdmin() helper (reads profiles.role via the service-role client, never client-supplied data) and call it before doing anything else in the route, returning 403 before even looking up the target user."
-    effort: S
-    ai_fix_prompt: |
-      Add a requireAdmin() helper (e.g. lib/auth/require-admin.ts) that
-      calls getSessionUser(), then looks up profiles.role for that user's
-      id via the service-role client (never trust user_metadata, request
-      body, or unverified JWT claims), returning the profile or null. In
-      app/api/admin/grant-credits/route.ts, call it and return 403 BEFORE
-      looking up the target user if the caller isn't an admin. Validate
-      amount is a bounded positive integer and targetUserId is a UUID; use
-      an atomic credit_balance = credit_balance + amount update, not
-      read-then-write. Reuse the same helper in /admin and
-      /studio/dashboard's page-level checks. After the change,
-      exploits/B-06-grant-credits-without-admin-role.sh must return 403
-      with liam's balance unchanged.
-  - id: B-07
-    severity: High
-    owasp_api_2023: "API8:2023 - Security Misconfiguration"
-    owasp_2021: "A08:2021 - Software and Data Integrity Failures"
-    what: "The Stripe webhook handler parses the request body directly with no signature verification at all."
-    impact: >-
-      Anyone who knows the webhook URL can POST an arbitrary forged event
-      and have it processed as if Stripe sent it - including a fake
-      `checkout.session.completed` that grants free credits (see B-08).
-    fix: "Verify the raw body against the stripe-signature header with stripe.webhooks.constructEvent() before parsing anything; fail closed if the webhook secret is unset."
-    effort: S
-    ai_fix_prompt: |
-      In app/api/stripe/webhook/route.ts, read the raw body with
-      `await request.text()` (not .json()), and call
-      stripe.webhooks.constructEvent(rawBody,
-      request.headers.get("stripe-signature"),
-      process.env.STRIPE_WEBHOOK_SECRET) inside a try/catch, returning 400
-      on any failure (missing header, wrong secret, tampered body) without
-      touching the database. Fail closed (throw at import time) if
-      STRIPE_WEBHOOK_SECRET is unset. After the change,
-      exploits/B-07-webhook-no-signature-check.sh must get HTTP 400 for
-      the unsigned forged event.
-  - id: B-08
-    severity: Medium
-    owasp_api_2023: "API8:2023 - Security Misconfiguration"
-    owasp_2021: "A04:2021 - Insecure Design"
-    what: "The webhook handler has no dedup against the Stripe event's own id - POSTing the identical event body twice grants credits twice."
-    impact: "A replayed (or maliciously resubmitted) webhook event grants the same credits repeatedly - direct financial loss for the business, scaling with however many times the event is replayed."
-    fix: "Record processed event ids in a table with a unique constraint, and grant credits in the SAME atomic statement (a SECURITY DEFINER RPC) so there is no window where one succeeded without the other."
-    effort: M
-    ai_fix_prompt: |
-      Add a migration creating stripe_events(event_id text primary key,
-      checkout_session_id text unique not null, processed_at timestamptz
-      default now()) (RLS enabled, zero policies, all grants revoked -
-      service_role only) and a SECURITY DEFINER function
-      apply_checkout_credits(p_event_id, p_session_id, p_user_id,
-      p_credits) that inserts into stripe_events with
-      `on conflict (event_id) do nothing returning event_id`; if no row
-      came back, return 'duplicate'; otherwise atomically update
-      profiles.credit_balance and return 'granted'. Revoke EXECUTE on this
-      function from public/anon/authenticated; grant only to service_role.
-      In the webhook route, require session.payment_status === "paid",
-      validate credits is a positive integer, and call this RPC instead of
-      the old select-then-update. After the change, a correctly-signed
-      event sent twice must move the balance by the credit amount exactly
-      once.
-  - id: B-09
-    severity: High
-    owasp_api_2023: "API8:2023 - Security Misconfiguration"
-    owasp_2021: "A03:2021 - Injection"
-    what: "Avatar upload accepts any file type and size to a public storage bucket; an uploaded SVG with an embedded <script> is served back as image/svg+xml with no attachment disposition."
-    impact: "Stored XSS - a malicious SVG avatar executes its script in the browser of anyone who views it, including via the public bucket URL directly."
-    fix: "Restrict the bucket's allowed_mime_types to a real-image allow-list (no SVG) with a file size cap, and derive the stored filename's extension from the validated type, never the raw uploaded filename."
-    effort: S
-    ai_fix_prompt: |
-      Add a migration that UPDATEs (not re-inserts - the bucket row
-      already exists) the avatars bucket to set file_size_limit (e.g. 2
-      MiB) and allowed_mime_types to {image/png,image/jpeg,image/webp} (no
-      image/svg+xml). In components/AvatarUpload.tsx, generate the storage
-      path server-side from the authenticated user's id and a fixed
-      extension derived from the validated MIME type (never from
-      file.name). After the change,
-      exploits/B-09-svg-avatar-stored-xss.sh must get a non-2xx response
-      for the SVG upload.
-  - id: B-10
-    severity: Medium
-    owasp_api_2023: "API4:2023 - Unrestricted Resource Consumption"
-    owasp_2021: "A04:2021 - Insecure Design"
-    what: "The booking route accepts `quantity` with no server-side validation - a negative value is accepted and, combined with the duplicated pricing formula (B-12), actually INCREASES the caller's credit balance instead of charging them."
-    impact: "Any authenticated user can generate unlimited free credits for themselves with a single crafted request - direct financial loss."
-    fix: "Validate quantity is a positive integer within a sane bound before it reaches the database; move the booking + credit debit into one atomic, capacity/balance-checking database function."
-    effort: M
-    ai_fix_prompt: |
-      Add a migration with check (quantity > 0) on bookings and check
-      (credit_balance >= 0) on profiles, plus a SECURITY DEFINER function
-      book_class(p_user_id, p_class_id, p_quantity, p_cost) that: locks
-      the class row (select ... for update), checks remaining capacity
-      against confirmed bookings, checks credit_balance >= p_cost, then
-      atomically decrements the balance and inserts the booking, raising
-      an exception if either check fails. Revoke EXECUTE from
-      anon/authenticated, grant only to service_role. In
-      app/api/bookings/route.ts, validate quantity is a positive integer
-      within an upper bound before computing cost via the one shared
-      lib/pricing.ts function, then call this RPC. After the change,
-      exploits/B-10-negative-quantity-booking.sh must return 400 with
-      liam's balance unchanged.
-  - id: B-11
-    severity: Medium
-    owasp_api_2023: "API3:2023 - Broken Object Property Level Authorization"
-    owasp_2021: "A01:2021 - Broken Access Control"
-    what: "The studio-members server component fetches (and ships to the browser in the React Server Component payload) every OTHER member's full profile row, including phone number - the page only ever renders their name."
-    impact: "Any member's browser receives every other member's email and phone number in the page's data payload, even though the rendered UI never shows it - trivially recoverable by inspecting network traffic."
-    fix: "Select only the columns the page actually renders ({id, full_name}) - fixing what data is FETCHED, not just what's displayed, closes the leak regardless of future rendering changes."
-    effort: S
-    ai_fix_prompt: |
-      (Applied as part of the B-04 fix, in the same commit - see that
-      entry. app/studio/members/page.tsx now selects only
-      {id, full_name} instead of select("*"). After the change, a
-      member's RSC flight payload must contain no other member's phone
-      number or email.)
-  - id: B-12
-    severity: Low
-    owasp_api_2023: "N/A - maintainability, not a security control"
-    owasp_2021: "N/A - maintainability, not a security control"
-    what: "The credit-cost pricing formula is duplicated three times (client display, server charge, admin dashboard) with only one copy validating anything; Supabase queries are scattered inline across page components; the dashboard page is ~600 lines mixing data-fetching, aggregation and rendering; there are zero automated tests."
-    impact: >-
-      Not directly exploitable on its own, but this is exactly the surface
-      where a fix for one bug (like B-10's quantity clamp) gets applied to
-      one duplicated copy of the logic and silently missed in the others -
-      as it literally did in the baseline.
-    fix: "One shared, VALIDATING pricing function; one data-access module for the dashboard; the page split into small components; tests covering the pricing/validation logic."
-    effort: M
-    ai_fix_prompt: |
-      In lib/pricing.ts, change calculateCreditCost so the shared function
-      VALIDATES (quantity must be a positive integer, throws otherwise)
-      instead of clamping - clamping would silently charge for 1 seat on a
-      negative quantity instead of rejecting it, reintroducing B-10's bug
-      through the back door. Give the UI its own separate display-only
-      clamp, importing the same validating function for the real
-      calculation. Delete the two duplicate inline formulas in
-      app/api/bookings/route.ts and app/studio/dashboard/page.tsx and
-      import from lib/pricing.ts instead. Split
-      app/studio/dashboard/page.tsx into a data-loading module
-      (lib/data/dashboard.ts) plus several smaller presentational
-      components. Add vitest tests for lib/pricing.ts (valid/invalid
-      quantity). After the change, `rg "credit_cost\s*\*"` must match only
-      inside lib/pricing.ts; `npm test` must pass; no single file under
-      app/ should exceed ~150 lines.
+- id: B-01
+  severity: Critical
+  owasp_api_2023: API8:2023 - Security Misconfiguration
+  owasp_2021: A05:2021 - Security Misconfiguration
+  what: The Supabase service-role key (bypasses every RLS policy in the database) is read from a `NEXT_PUBLIC_`-prefixed
+    environment variable inside a client component.
+  impact: Next.js inlines every `NEXT_PUBLIC_*` variable into the JavaScript bundle shipped to every visitor's
+    browser, logged in or not. Anyone who views page source gets a credential that can read or write ANY
+    row in the database, unrestricted.
+  fix: Move the query behind a server-only route using the service-role client correctly (never in a "use
+    client" component); delete the NEXT_PUBLIC_ variable entirely.
+  effort: S
+- id: B-02
+  severity: Critical
+  owasp_api_2023: API8:2023 - Security Misconfiguration
+  owasp_2021: A02:2021 - Cryptographic Failures
+  what: A Stripe secret key is hardcoded directly in a server file, and .env (holding the same value plus
+    other credentials) is committed to the repository.
+  impact: Anyone with read access to the repository - a contractor, a leaked backup, an over-shared CI
+    log - obtains a live-shaped credential that can act as the application against Stripe's API.
+  fix: Read the secret from an environment variable with no hardcoded fallback (fail to start if unset);
+    add .env to .gitignore and stop committing it.
+  effort: S
+- id: B-03
+  severity: Critical
+  owasp_api_2023: API1:2023 - Broken Object Level Authorization
+  owasp_2021: A01:2021 - Broken Access Control
+  what: Row-level security is never enabled on the bookings table at all.
+  impact: Any authenticated user can read, update, or delete EVERY other user's bookings directly through
+    Supabase's own REST API, completely bypassing the Next.js app's own routes and any checks they perform.
+  fix: Enable RLS with an owner/admin SELECT policy; explicitly revoke INSERT/UPDATE/DELETE from `authenticated`
+    - every write must go through a service-role route or RPC, since a policy alone doesn't override Supabase's
+    default table-level grants.
+  effort: M
+- id: B-04
+  severity: Critical
+  owasp_api_2023: API3:2023 - Broken Object Property Level Authorization
+  owasp_2021: A01:2021 - Broken Access Control
+  what: RLS IS enabled on profiles, but the SELECT policy is `using (true)` - equivalent to no policy
+    at all for reads.
+  impact: Every authenticated user can read every other user's profile row, including email and phone
+    number - a full customer-PII leak.
+  fix: Replace the policy with `id = auth.uid() OR is_admin()`; add a SECURITY DEFINER is_admin() helper
+    to avoid the self-referential-policy recursion a plain subquery on profiles would hit.
+  effort: S
+- id: B-05
+  severity: High
+  owasp_api_2023: API1:2023 - Broken Object Level Authorization
+  owasp_2021: A01:2021 - Broken Access Control
+  what: POST /api/bookings/{id}/cancel checks that the caller is logged in, but never checks that the
+    booking being cancelled belongs to them.
+  impact: Any authenticated user can cancel any OTHER user's booking by id - a denial-of-service against
+    a specific victim's reservations.
+  fix: Filter the update on id AND user_id (AND status, to make a second cancel a no-op); return the same
+    404 whether the booking belongs to someone else or doesn't exist.
+  effort: S
+- id: B-06
+  severity: High
+  owasp_api_2023: API5:2023 - Broken Function Level Authorization
+  owasp_2021: A01:2021 - Broken Access Control
+  what: The admin-only 'grant credits' page hides its form from non-admins in the UI, but the route behind
+    it never re-checks the caller's role server-side.
+  impact: Any authenticated user can call the route directly and grant themselves - or anyone - unlimited
+    free credits, bypassing the studio's entire paid-credit model.
+  fix: Add a shared requireAdmin() helper (reads profiles.role via the service-role client, never client-supplied
+    data) and call it before doing anything else in the route, returning 403 before even looking up the
+    target user.
+  effort: S
+- id: B-07
+  severity: High
+  owasp_api_2023: API8:2023 - Security Misconfiguration
+  owasp_2021: A08:2021 - Software and Data Integrity Failures
+  what: The Stripe webhook handler parses the request body directly with no signature verification at
+    all.
+  impact: Anyone who knows the webhook URL can POST an arbitrary forged event and have it processed as
+    if Stripe sent it - including a fake `checkout.session.completed` that grants free credits (see B-08).
+  fix: Verify the raw body against the stripe-signature header with stripe.webhooks.constructEvent() before
+    parsing anything; fail closed if the webhook secret is unset.
+  effort: S
+- id: B-08
+  severity: Medium
+  owasp_api_2023: API8:2023 - Security Misconfiguration
+  owasp_2021: A04:2021 - Insecure Design
+  what: The webhook handler has no dedup against the Stripe event's own id - POSTing the identical event
+    body twice grants credits twice.
+  impact: A replayed (or maliciously resubmitted) webhook event grants the same credits repeatedly - direct
+    financial loss for the business, scaling with however many times the event is replayed.
+  fix: Record processed event ids in a table with a unique constraint, and grant credits in the SAME atomic
+    statement (a SECURITY DEFINER RPC) so there is no window where one succeeded without the other.
+  effort: M
+- id: B-09
+  severity: High
+  owasp_api_2023: API8:2023 - Security Misconfiguration
+  owasp_2021: A03:2021 - Injection
+  what: Avatar upload accepts any file type and size to a public storage bucket; an uploaded SVG with
+    an embedded <script> is served back as image/svg+xml with no attachment disposition.
+  impact: Stored XSS - a malicious SVG avatar executes its script in the browser of anyone who views it,
+    including via the public bucket URL directly.
+  fix: Restrict the bucket's allowed_mime_types to a real-image allow-list (no SVG) with a file size cap,
+    and derive the stored filename's extension from the validated type, never the raw uploaded filename.
+  effort: S
+- id: B-10
+  severity: Medium
+  owasp_api_2023: API4:2023 - Unrestricted Resource Consumption
+  owasp_2021: A04:2021 - Insecure Design
+  what: The booking route accepts `quantity` with no server-side validation - a negative value is accepted
+    and, combined with the duplicated pricing formula (B-12), actually INCREASES the caller's credit balance
+    instead of charging them.
+  impact: Any authenticated user can generate unlimited free credits for themselves with a single crafted
+    request - direct financial loss.
+  fix: Validate quantity is a positive integer within a sane bound before it reaches the database; move
+    the booking + credit debit into one atomic, capacity/balance-checking database function.
+  effort: M
+- id: B-11
+  severity: Medium
+  owasp_api_2023: API3:2023 - Broken Object Property Level Authorization
+  owasp_2021: A01:2021 - Broken Access Control
+  what: The studio-members server component fetches (and ships to the browser in the React Server Component
+    payload) every OTHER member's full profile row, including phone number - the page only ever renders
+    their name.
+  impact: Any member's browser receives every other member's email and phone number in the page's data
+    payload, even though the rendered UI never shows it - trivially recoverable by inspecting network
+    traffic.
+  fix: Select only the columns the page actually renders ({id, full_name}) - fixing what data is FETCHED,
+    not just what's displayed, closes the leak regardless of future rendering changes.
+  effort: S
+- id: B-12
+  severity: Low
+  owasp_api_2023: N/A - maintainability, not a security control
+  owasp_2021: N/A - maintainability, not a security control
+  what: The credit-cost pricing formula is duplicated three times (client display, server charge, admin
+    dashboard) with only one copy validating anything; Supabase queries are scattered inline across page
+    components; the dashboard page is ~600 lines mixing data-fetching, aggregation and rendering; there
+    are zero automated tests.
+  impact: Not directly exploitable on its own, but this is exactly the surface where a fix for one bug
+    (like B-10's quantity clamp) gets applied to one duplicated copy of the logic and silently missed
+    in the others - as it literally did in the baseline.
+  fix: One shared, VALIDATING pricing function; one data-access module for the dashboard; the page split
+    into small components; tests covering the pricing/validation logic.
+  effort: M

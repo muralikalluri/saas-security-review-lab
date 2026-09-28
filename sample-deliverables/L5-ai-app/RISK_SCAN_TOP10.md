@@ -14,13 +14,16 @@ row-level-security checker, Trivy dependency scan) plus manual review and live
 exploit-script proof (`targets/vibe-app/exploits/*.sh`) for everything the automated
 tools structurally can't see (business-logic races, RLS-adjacent authorization gaps).
 
-## Top 10 findings (of 12 total - the 2 lowest-priority are in the Standard/Advanced
-tier report, `REVIEW_WITH_FIX_PLAN.md`)
+## Top 10 findings (of 12 total - the 2 lowest-priority are in the Standard/Advanced tier report, `REVIEW_WITH_FIX_PLAN.md`)
 
 ### B-01 — Critical
 
-**OWASP:** A05:2021 - Security Misconfiguration · API8:2023 - Security Misconfiguration · **How found:** tool (gitleaks, semgrep)  
-**Evidence:** `targets/​vibe-app/​.env:20; targets/​vibe-app/​components/​AdminUserList.tsx:7`
+**OWASP:** A05:2021 - Security Misconfiguration · API8:2023 - Security Misconfiguration · **How found:** tool (gitleaks, semgrep)
+
+**Evidence:**
+
+- `.env:20`
+- `components/​AdminUserList.tsx:7`
 
 The Supabase service-role key (bypasses every RLS policy in the database) is read from a `NEXT_PUBLIC_`-prefixed environment variable inside a client component. Next.js inlines every `NEXT_PUBLIC_*` variable into the JavaScript bundle shipped to every visitor's browser, logged in or not. Anyone who views page source gets a credential that can read or write ANY row in the database, unrestricted.
 
@@ -28,8 +31,12 @@ The Supabase service-role key (bypasses every RLS policy in the database) is rea
 
 ### B-02 — Critical
 
-**OWASP:** A02:2021 - Cryptographic Failures · API8:2023 - Security Misconfiguration · **How found:** tool (gitleaks)  
-**Evidence:** `targets/​vibe-app/​.env:3; targets/​vibe-app/​lib/​stripe.ts:3`
+**OWASP:** A02:2021 - Cryptographic Failures · API8:2023 - Security Misconfiguration · **How found:** tool (gitleaks)
+
+**Evidence:**
+
+- `.env:3`
+- `lib/​stripe.ts:3`
 
 A Stripe secret key is hardcoded directly in a server file, and .env (holding the same value plus other credentials) is committed to the repository. Anyone with read access to the repository - a contractor, a leaked backup, an over-shared CI log - obtains a live-shaped credential that can act as the application against Stripe's API.
 
@@ -37,8 +44,11 @@ A Stripe secret key is hardcoded directly in a server file, and .env (holding th
 
 ### B-03 — Critical
 
-**OWASP:** A01:2021 - Broken Access Control · API1:2023 - Broken Object Level Authorization · **How found:** tool (rls-checker)  
-**Evidence:** `targets/​vibe-app/​supabase/​migrations/​20240101000002_rls_and_storage.sql:39`
+**OWASP:** A01:2021 - Broken Access Control · API1:2023 - Broken Object Level Authorization · **How found:** tool (rls-checker)
+
+**Evidence:**
+
+- `supabase/​migrations/​20240101000002_rls_and_storage.sql:39`
 
 Row-level security is never enabled on the bookings table at all. Any authenticated user can read, update, or delete EVERY other user's bookings directly through Supabase's own REST API, completely bypassing the Next.js app's own routes and any checks they perform.
 
@@ -46,8 +56,11 @@ Row-level security is never enabled on the bookings table at all. Any authentica
 
 ### B-04 — Critical
 
-**OWASP:** A01:2021 - Broken Access Control · API3:2023 - Broken Object Property Level Authorization · **How found:** tool (rls-checker)  
-**Evidence:** `targets/​vibe-app/​supabase/​migrations/​20240101000002_rls_and_storage.sql:10`
+**OWASP:** A01:2021 - Broken Access Control · API3:2023 - Broken Object Property Level Authorization · **How found:** tool (rls-checker)
+
+**Evidence:**
+
+- `supabase/​migrations/​20240101000002_rls_and_storage.sql:10`
 
 RLS IS enabled on profiles, but the SELECT policy is `using (true)` - equivalent to no policy at all for reads. Every authenticated user can read every other user's profile row, including email and phone number - a full customer-PII leak.
 
@@ -55,8 +68,11 @@ RLS IS enabled on profiles, but the SELECT policy is `using (true)` - equivalent
 
 ### B-05 — High
 
-**OWASP:** A01:2021 - Broken Access Control · API1:2023 - Broken Object Level Authorization · **How found:** tool (semgrep)  
-**Evidence:** `targets/​vibe-app/​app/​api/​bookings/​[id]/​cancel/​route.ts:5`
+**OWASP:** A01:2021 - Broken Access Control · API1:2023 - Broken Object Level Authorization · **How found:** tool (semgrep)
+
+**Evidence:**
+
+- `app/​api/​bookings/​[id]/​cancel/​route.ts:5`
 
 POST /api/bookings/{id}/cancel checks that the caller is logged in, but never checks that the booking being cancelled belongs to them. Any authenticated user can cancel any OTHER user's booking by id - a denial-of-service against a specific victim's reservations.
 
@@ -64,8 +80,12 @@ POST /api/bookings/{id}/cancel checks that the caller is logged in, but never ch
 
 ### B-06 — High
 
-**OWASP:** A01:2021 - Broken Access Control · API5:2023 - Broken Function Level Authorization · **How found:** manual  
-**Evidence:** `targets/​vibe-app/​app/​admin/​page.tsx:6; targets/​vibe-app/​app/​api/​admin/​grant-credits/​route.ts:6`
+**OWASP:** A01:2021 - Broken Access Control · API5:2023 - Broken Function Level Authorization · **How found:** manual
+
+**Evidence:**
+
+- `app/​admin/​page.tsx:6`
+- `app/​api/​admin/​grant-credits/​route.ts:6`
 
 The admin-only 'grant credits' page hides its form from non-admins in the UI, but the route behind it never re-checks the caller's role server-side. Any authenticated user can call the route directly and grant themselves - or anyone - unlimited free credits, bypassing the studio's entire paid-credit model.
 
@@ -73,8 +93,11 @@ The admin-only 'grant credits' page hides its form from non-admins in the UI, bu
 
 ### B-07 — High
 
-**OWASP:** A08:2021 - Software and Data Integrity Failures · API8:2023 - Security Misconfiguration · **How found:** manual  
-**Evidence:** `targets/​vibe-app/​app/​api/​stripe/​webhook/​route.ts:5`
+**OWASP:** A08:2021 - Software and Data Integrity Failures · API8:2023 - Security Misconfiguration · **How found:** manual
+
+**Evidence:**
+
+- `app/​api/​stripe/​webhook/​route.ts:5`
 
 The Stripe webhook handler parses the request body directly with no signature verification at all. Anyone who knows the webhook URL can POST an arbitrary forged event and have it processed as if Stripe sent it - including a fake `checkout.session.completed` that grants free credits (see B-08).
 
@@ -82,8 +105,12 @@ The Stripe webhook handler parses the request body directly with no signature ve
 
 ### B-09 — High
 
-**OWASP:** A03:2021 - Injection · API8:2023 - Security Misconfiguration · **How found:** manual  
-**Evidence:** `targets/​vibe-app/​components/​AvatarUpload.tsx:7; targets/​vibe-app/​supabase/​migrations/​20240101000002_rls_and_storage.sql:50`
+**OWASP:** A03:2021 - Injection · API8:2023 - Security Misconfiguration · **How found:** manual
+
+**Evidence:**
+
+- `components/​AvatarUpload.tsx:7`
+- `supabase/​migrations/​20240101000002_rls_and_storage.sql:50`
 
 Avatar upload accepts any file type and size to a public storage bucket; an uploaded SVG with an embedded <script> is served back as image/svg+xml with no attachment disposition. Stored XSS - a malicious SVG avatar executes its script in the browser of anyone who views it, including via the public bucket URL directly.
 
@@ -91,8 +118,11 @@ Avatar upload accepts any file type and size to a public storage bucket; an uplo
 
 ### B-08 — Medium
 
-**OWASP:** A04:2021 - Insecure Design · API8:2023 - Security Misconfiguration · **How found:** manual  
-**Evidence:** `targets/​vibe-app/​app/​api/​stripe/​webhook/​route.ts:11`
+**OWASP:** A04:2021 - Insecure Design · API8:2023 - Security Misconfiguration · **How found:** manual
+
+**Evidence:**
+
+- `app/​api/​stripe/​webhook/​route.ts:11`
 
 The webhook handler has no dedup against the Stripe event's own id - POSTing the identical event body twice grants credits twice. A replayed (or maliciously resubmitted) webhook event grants the same credits repeatedly - direct financial loss for the business, scaling with however many times the event is replayed.
 
@@ -100,8 +130,11 @@ The webhook handler has no dedup against the Stripe event's own id - POSTing the
 
 ### B-10 — Medium
 
-**OWASP:** A04:2021 - Insecure Design · API4:2023 - Unrestricted Resource Consumption · **How found:** manual  
-**Evidence:** `targets/​vibe-app/​app/​api/​bookings/​route.ts:20`
+**OWASP:** A04:2021 - Insecure Design · API4:2023 - Unrestricted Resource Consumption · **How found:** manual
+
+**Evidence:**
+
+- `app/​api/​bookings/​route.ts:20`
 
 The booking route accepts `quantity` with no server-side validation - a negative value is accepted and, combined with the duplicated pricing formula (B-12), actually INCREASES the caller's credit balance instead of charging them. Any authenticated user can generate unlimited free credits for themselves with a single crafted request - direct financial loss.
 
@@ -118,5 +151,5 @@ The booking route accepts `quantity` with no server-side validation - a negative
 | Low | 1 |
 | **Total** | **12** |
 
-Full findings, evidence, remediation plan and retest notes (including B-11 and B-12):
-`REVIEW_WITH_FIX_PLAN.md` (Standard/Advanced tier).
+Full findings, evidence, remediation plan and retest notes: `REVIEW_WITH_FIX_PLAN.md`
+(Standard/Advanced tier).
