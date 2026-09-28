@@ -29,23 +29,30 @@ before trusting it over the file it cites.
 | Metric | Result | Source |
 |---|---|---|
 | Target A findings with a fix commit in `tenant-api-fixed` | 13 / 13 | `sample-deliverables/L4-multitenant/SECURITY_REVIEW_FULL.md`'s per-finding `Diff:` line (all 13 point to the same commit - M3 fixed Target A in one commit, not one-per-finding) |
-| Isolation-tester non-control probes vs. baseline | 185 probes, 7 findings (A-01..A-07) confirmed LEAK | `results/isolation-tester/baseline/isolation-matrix.md` |
-| Isolation-tester non-control probes vs. fixed mode | 124 probes, **0 leaks**, exit 0 | `results/isolation-tester/fixed/isolation-matrix.md` |
-| Target B findings with a fix commit in `vibe-app-fixed` | 12 / 12 | `sample-deliverables/L5-ai-app/REVIEW_WITH_FIX_PLAN.md`'s per-finding `Diff:` line - a real `git log` lookup per finding id, not asserted |
-| Supabase RLS checker vs. fixed mode | 0 FAIL | `scanners/results/rls-checker/vibe-app-fixed/rls-matrix.md` |
+| Isolation-tester non-control probes vs. baseline | 115 probes, 58 classified LEAK, confirming A-01..A-07 | `results/isolation-tester/baseline/isolation-matrix.md` |
+| Isolation-tester non-control probes vs. fixed mode | 115 probes, **0 LEAK**, exit 0 (`pytest`: 109 passed, 0 failed) | `results/isolation-tester/fixed/isolation-matrix.md` |
+| Target B findings with a fix commit in `vibe-app-fixed` | 12 / 12 (7 of the 12 cite two commits - a follow-up landed after a milestone review found the first incomplete) | `sample-deliverables/L5-ai-app/REVIEW_WITH_FIX_PLAN.md`'s per-finding `Diff:` line - a real `git log` lookup per finding id, not asserted |
+| Supabase RLS checker vs. `vibe-app` baseline | 2 FAIL (`bookings`, `profiles` - B-03, B-04) | `scanners/results/rls-checker/vibe-app/rls-matrix.md` |
+| Supabase RLS checker vs. `vibe-app-fixed` | 0 FAIL | `scanners/results/rls-checker/vibe-app-fixed/rls-matrix.md` |
 | gitleaks vs. `vibe-app-fixed`'s tracked source | 0 hits | `scanners/results/gitleaks/vibe-app-fixed-tree.md` |
 | Semgrep vs. `vibe-app-fixed`'s tracked source | 0 findings | `scanners/results/semgrep/vibe-app-fixed.json` |
 | Findings by discovery method (25 total, A+B) | 7 harness · 6 tool · 12 manual | `scanners/results/attribution.md` |
-| Dependency scan | 3 manifests scanned (Trivy) | `scanners/results/dependency-scan/*.json` |
+| Dependency scan | 3 manifests (Trivy): `tenant-api`, `tenant-api-fixed` (has an extra dependency, Bucket4j), `vibe-app` - `vibe-app-fixed` shares an identical lockfile with `vibe-app` (only `name`/scripts differ), so it isn't separately re-scanned | `scanners/results/dependency-scan/*.json` |
 
-`targets/vibe-app-fixed/exploits/B-*.sh` (12 scripts) were run by hand against a
-freshly-reset stack during development and every one printed `FIXED`/exit 0. Target A has
-no equivalent `tenant-api-fixed/exploits/` folder - its retest evidence is the
-isolation-tester run against the fixed stack (`124 probes, 0 leaks` above), not exploit
-scripts. `targets/tenant-api/exploits/A-*.sh` (13 scripts) only run against the vulnerable
-baseline. None of this is captured to a committed results file the way the rows above are,
-so re-run the B-series scripts yourself (`for f in targets/vibe-app-fixed/exploits/B-*.sh;
-do ./"$f"; done`) rather than trusting this sentence alone.
+All 13 `targets/tenant-api/exploits/A-*.sh` scripts and all 12
+`targets/vibe-app/exploits/B-*.sh` scripts were re-run by hand against freshly-reset
+stacks while preparing this README, confirming each one reproduces its seeded flaw on
+baseline. The same A-series scripts (pointed at the fixed API via `API_BASE`, and for
+A-11 also `API_SERVICE`/`DB_SERVICE` - see `targets/tenant-api-fixed/README.md`) and
+B-series scripts (`targets/vibe-app-fixed/exploits/`) confirmed the fixed behaviour
+instead, for all 13 and all 12 respectively - except A-09, which greps the committed
+`application.yml` directly (there's no live request that proves a hardcoded secret's
+absence) so it can't be pointed at a different target at all; its fixed-mode evidence is
+gitleaks finding 0 hits in `tenant-api-fixed`'s tracked source instead (see the Results
+table above) plus the file itself showing no default `DB_PASSWORD` fallback. None of this
+hand-verification is captured to a committed results file the way the rows above are, so
+re-run them yourself (e.g. `for f in targets/vibe-app-fixed/exploits/B-*.sh; do ./"$f";
+done`) rather than trusting this paragraph alone.
 
 ## Architecture
 
@@ -191,9 +198,68 @@ sprint-grouped remediation plan. See `sample-deliverables/` for all 4 deliverabl
 
 ## MVP status
 
-Milestones M0–M7 (`SPEC.md` §7) are complete. M8 ("CI job running isolation tester
-against fixed mode on every push") is explicitly out of MVP scope ("Later") and not
-implemented.
+Milestones M0–M7 (`SPEC.md` §7) are implemented. M8 ("CI job running isolation tester
+against fixed mode on every push") is explicitly out of MVP scope ("Later" in `SPEC.md`
+and `CLAUDE.md`) and not implemented - the CI workflow's isolation-tester job only runs
+the harness's own offline unit tests, never a live run against a deployed stack.
+
+Everything else was re-verified while preparing this README, not just read from old
+results:
+
+- **M0** - banners present in every required file, `docker compose config` valid,
+  `docker compose build`/`up` succeed for both `api` and `api-fixed`.
+- **M1** - all 13 `targets/tenant-api/exploits/A-*.sh` scripts reproduce their seeded
+  flaw against a freshly-reset baseline (Docker volume wiped, Flyway re-seeded).
+- **M2/M3** - the isolation-tester confirms A-01..A-07 on a fresh baseline (58 LEAK / 115
+  non-control probes) and is fully green on fixed mode (0 LEAK, `pytest`: 109 passed, 0
+  failed) - re-run twice on independently fresh databases for reproducibility, not just
+  read from the committed file (see the note below - the previously-committed numbers
+  turned out to be stale).
+- **M4** - all 12 `targets/vibe-app/exploits/B-*.sh` scripts reproduce their seeded flaw
+  against a freshly-reset baseline.
+- **M5** - `scanners/verify_expected.py` passes (gitleaks, Semgrep, attribution counts);
+  the RLS checker correctly reports 2 FAIL against `vibe-app` baseline (B-03, B-04) and 0
+  FAIL against `vibe-app-fixed`; its own unit tests pass (24/24 full suite, 22/22 in CI's
+  narrower scope).
+- **M6** - all 12 B-series exploit scripts confirm FIXED against a freshly-reset
+  `vibe-app-fixed`; `tsc`/`npm run build`/`npm test` all clean; all 10 migrations apply
+  cleanly on `supabase db reset`.
+- **M7** - all 4 sample deliverables regenerate cleanly and export to PDF with no
+  meaningful overflow (a few points on two pages, not the eye - see
+  `report-templates/README.md`).
+
+**One thing this pass corrected, not just verified:** the committed
+`results/isolation-tester/{baseline,fixed}/isolation-matrix.json` dated from the original
+M3 commit and turned out not to be reproducible from a clean database - two independent
+fresh runs both gave a smaller, but internally consistent, probe count (115 non-control
+vs. the previously-committed 185) with the *same* findings confirmed either way
+(A-01..A-07 - no seeded flaw was accidentally closed, only the denominator was stale).
+Root cause and full details in that fix's own commit message.
+
+### Known gaps, found while preparing this release
+
+1. **`mvn verify`'s Testcontainers-based integration tests could not be run in this local
+   environment.** `TenantApiApplicationTests` and `TenantIsolationFlawsTest` (both
+   modules) fail with "Could not find a valid Docker environment" against this machine's
+   Docker Desktop + Testcontainers 1.20.1 combination, even though `docker compose
+   build`/`up` work fine and `mvn package -DskipTests` succeeds cleanly for both modules.
+   This looks like a local macOS-specific compatibility issue, not a code defect - the
+   same functional behaviour (tenant isolation broken on baseline, closed on fixed) was
+   independently confirmed instead via the live exploit scripts and isolation-tester runs
+   against real running containers, described above. CI runs this job on Linux
+   GitHub-hosted runners, where this specific failure mode is not expected to reproduce,
+   but that hasn't been confirmed by an actual run (see #2).
+2. **This repository has not been pushed to GitHub yet.** The CI badge above points at a
+   workflow that has never run against this code - the local `main` branch is 25 commits
+   ahead of `origin/main` with nothing pushed. Every check that workflow performs was
+   instead run locally in this pass (the M0–M7 list above) as a substitute, so "CI green"
+   is not yet a claim backed by an actual GitHub Actions run.
+3. **Portfolio checklist gaps.** `SPEC.md` §3 asks for a screenshot of both isolation
+   matrices; the repo's own README-order convention calls for a demo GIF (see Demo,
+   above) - neither has been captured yet, and the "Hire me" link below is still a
+   placeholder (no real Upwork profile URL supplied yet). These need a human in the loop
+   - recording a walkthrough/screenshots and supplying a real profile link - so they're
+   called out here rather than faked.
 
 ## Hire me
 
