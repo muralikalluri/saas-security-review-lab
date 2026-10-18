@@ -240,20 +240,14 @@ Root cause and full details in that fix's own commit message.
 
 ### Known gaps, found while preparing this release
 
-1. **`mvn verify`'s Testcontainers-based integration tests could not be run in this local
-   environment.** `TenantApiApplicationTests` and `TenantIsolationFlawsTest` (both
-   modules) fail with "Could not find a valid Docker environment" against this machine's
-   Docker Desktop + Testcontainers 1.20.1 combination, even though `docker compose
-   build`/`up` work fine and `mvn package -DskipTests` succeeds cleanly for both modules.
-   This looks like a local macOS-specific compatibility issue, not a code defect - the
-   same functional behaviour (tenant isolation broken on baseline, closed on fixed) was
-   independently confirmed instead via the live exploit scripts and isolation-tester runs
-   against real running containers, described above. CI runs this job on Linux
-   GitHub-hosted runners, where this specific failure mode is not expected to reproduce,
-   but that hasn't been confirmed by an actual run (see #2).
-2. **CI status.** The GitHub Actions workflow has run against `main`: banners, scanners,
-   compose validation, both vibe-app builds and the isolation-tester unit tests pass; the two
-   tenant-api build jobs currently fail in their build-and-test step and are being fixed.
+1. **Testcontainers on newer Docker Desktop.** `mvn verify` can fail locally with "Could not
+   find a valid Docker environment" because Testcontainers 1.20.1 negotiates an API version
+   newer Docker Desktop rejects. Workaround: `mvn verify -DargLine="-Dapi.version=1.44"`.
+   Linux CI is unaffected.
+2. **CI status.** The GitHub Actions workflow is green on `main`, including both tenant-api
+   build-and-test jobs (earlier failures were test-lifecycle bugs: a per-class Postgres
+   container outliving Spring's cached context, and an order-dependent assertion in the A-06
+   test).
 
 ## Hire me
 
