@@ -94,7 +94,11 @@ class TenantIsolationFlawsTest extends AbstractIntegrationTest {
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
-        org.assertj.core.api.Assertions.assertThat(globexBody).isEqualTo(acmeBody);
+        // The "source" field differs (computed vs cache) by design; the leak is
+        // that Globex is served Acme's cached total.
+        org.assertj.core.api.Assertions.assertThat(
+                        (Object) com.jayway.jsonpath.JsonPath.read(globexBody, "$.totalAmount"))
+                .isEqualTo(com.jayway.jsonpath.JsonPath.read(acmeBody, "$.totalAmount"));
     }
 
     @Test

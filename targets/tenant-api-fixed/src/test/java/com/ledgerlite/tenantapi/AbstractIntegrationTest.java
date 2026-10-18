@@ -6,8 +6,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
  * Base for tests that need a real Postgres (so Flyway migrations - INCLUDING
@@ -21,7 +19,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * connects as ledgerlite_app - the same restricted, RLS-bound role that
  * V3__row_level_security.sql creates with this exact password.
  */
-@Testcontainers
 @SpringBootTest
 @AutoConfigureMockMvc
 @ExtendWith(org.springframework.test.context.junit.jupiter.SpringExtension.class)
@@ -29,9 +26,16 @@ abstract class AbstractIntegrationTest {
 
     static final String APP_ROLE_PASSWORD = "apponly_local_dev_password_do_not_use";
 
-    @Container
+    // Singleton container: started once per JVM and shared by every test class.
+    // Not a JUnit-managed @Container, because that is stopped after each class
+    // while Spring caches the application context (and its connection pool)
+    // across classes - the second class would then talk to a dead Postgres.
     static final PostgreSQLContainer<?> POSTGRES =
             new PostgreSQLContainer<>("postgres:16-alpine").withDatabaseName("ledgerlite_test");
+
+    static {
+        POSTGRES.start();
+    }
 
     @DynamicPropertySource
     static void datasourceProperties(DynamicPropertyRegistry registry) {

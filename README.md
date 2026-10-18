@@ -17,8 +17,10 @@ app with a fix plan).
 
 ## Demo
 
-_Screen recording not yet captured - `npm run dev` / `docker compose up` walkthroughs are
-below in Quickstart; a short demo GIF is on the list before this goes live on Upwork._
+![A Globex user reads an Acme invoice on the baseline API, gets 404 on the fixed API; the isolation tester finds 58 leaks before the fix and 0 after](docs/img/demo.gif)
+
+*Steps 1 and 2 run live against the baseline (:8183) and fixed (:8184) APIs; step 3 reads the committed
+isolation-tester results. Re-record with `vhs docs/demo.tape` (see its header).*
 
 ## Results
 
@@ -249,20 +251,12 @@ Root cause and full details in that fix's own commit message.
    against real running containers, described above. CI runs this job on Linux
    GitHub-hosted runners, where this specific failure mode is not expected to reproduce,
    but that hasn't been confirmed by an actual run (see #2).
-2. **This repository has not been pushed to GitHub yet.** The CI badge above points at a
-   workflow that has never run against this code - the local `main` branch is 25 commits
-   ahead of `origin/main` with nothing pushed. Every check that workflow performs was
-   instead run locally in this pass (the M0–M7 list above) as a substitute, so "CI green"
-   is not yet a claim backed by an actual GitHub Actions run.
-3. **Portfolio checklist gaps.** `SPEC.md` §3 asks for a screenshot of both isolation
-   matrices; the repo's own README-order convention calls for a demo GIF (see Demo,
-   above) - neither has been captured yet, and the "Hire me" link below is still a
-   placeholder (no real Upwork profile URL supplied yet). These need a human in the loop
-   - recording a walkthrough/screenshots and supplying a real profile link - so they're
-   called out here rather than faked.
+2. **CI status.** The GitHub Actions workflow has run against `main`: banners, scanners,
+   compose validation, both vibe-app builds and the isolation-tester unit tests pass; the two
+   tenant-api build jobs currently fail in their build-and-test step and are being fixed.
 
 ## Hire me
 
 This repo is the working proof behind my Upwork listings for multi-tenant SaaS security
-reviews and AI-built app security reviews with a fix plan - **[find me on Upwork](https://www.upwork.com/)**
-(profile link to be added) or open an issue here with questions about the approach.
+reviews and AI-built app security reviews with a fix plan - **[hire me on Upwork](https://www.upwork.com/freelancers/~01c80d5fd70c92b97d)**,
+or open an issue here with questions about the approach.
